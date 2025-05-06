@@ -39,14 +39,14 @@ export default function HomeScreen() {
       console.log("위치 권한 요청 시작");
       const { granted } = await Location.requestForegroundPermissionsAsync();
       if (!granted) {
-        console.warn("❗ 위치 권한 거부됨");
+        console.warn("위치 권한 거부됨");
         setLocationPermission(false);
         return false;
       }
-      console.log("✅ 권한 결과 허용됨");
+      console.log("권한 결과 허용됨");
       return true;
     } catch (e) {
-      console.error("🚨 위치 권한 요청 에러:", e);
+      console.error("위치 권한 요청 에러:", e);
       setLocationPermission(false);
       return false;
     }
@@ -61,9 +61,9 @@ export default function HomeScreen() {
         coords: { latitude, longitude },
       } = await Location.getCurrentPositionAsync({ accuracy: 5 });
       setUserLocation({ latitude, longitude });
-      console.log("📍 현재 위치:", latitude, longitude);
+      console.log("현재 위치:", latitude, longitude);
     } catch (e) {
-      console.error("🚨 현재 위치 가져오기 실패:", e);
+      console.error("현재 위치 가져오기 실패:", e);
     }
   };
 
@@ -77,7 +77,7 @@ export default function HomeScreen() {
       <SearchBar onMenuPress={handleMenuPress} />
       <RangeSlider range={range} setRange={setRange} />
 
-      {/* 지도 영역 - 지금은 Placeholder */}
+      {/* 지도 영역 */}
       <View style={styles.mapContainer}>
         <MapWebView userLocation={userLocation} />
       </View>

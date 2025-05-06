@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
-export default function NearbyPanel() {
+export default function BookmarkPanel() {
   return (
     <View>
       <Text style={styles.text}>북마크 리스트 (추후 구현)</Text>
