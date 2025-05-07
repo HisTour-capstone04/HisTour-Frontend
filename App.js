@@ -3,6 +3,8 @@ import { StyleSheet, Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
+import { AuthProvider } from "./contexts/AuthContext";
+
 import HomeScreen from "./screens/Home/HomeScreen";
 import DetailScreen from "./components/DetailScreen";
 import TmapScreen from "./MapTest";
@@ -15,7 +17,9 @@ export default function App() {
     // <StatusBar style="auto" />
     // <HomeScreen />
     //    <TmapScreen />
-    <MainNavigator />
+    <AuthProvider>
+      <MainNavigator />
+    </AuthProvider>
   );
 }
 

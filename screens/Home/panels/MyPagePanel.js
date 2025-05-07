@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
@@ -11,14 +11,23 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { AuthContext } from "../../../contexts/AuthContext";
 import { theme } from "../../../theme/colors";
 
 export default function MyPagePanel() {
-  const [modalVisible, setModalVisible] = useState(false);
+  const { username, isLoggedIn, login, logout } = useContext(AuthContext);
+
+  // 로그인, 로그아웃 모달 창 관리
+  const [loginModalVisible, setLoginModalVisible] = useState(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+
+  // 사용자 입력 관리
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // 로그인 처리
+  // 로그인 처리 메서드
   const handleLogin = async () => {
     console.log("이메일:", email);
     console.log("비밀번호:", password);
@@ -40,6 +49,7 @@ export default function MyPagePanel() {
 
       const json = await response.json();
 
+      // 로그인 실패 시
       if (!response.ok || !json.data) {
         Alert.alert(
           "로그인 실패",
@@ -48,28 +58,41 @@ export default function MyPagePanel() {
         return;
       }
 
+      // 로그인 성공 시
       Alert.alert("로그인 성공", `${json.data.username}님 환영합니다!`);
-      setModalVisible(false);
-      // TODO: 토큰 저장하거나 홈으로 이동하는 처리 추가
+      setLoginModalVisible(false);
+      await login(json.data.username, json.data.accessToken);
     } catch (error) {
+      // 로그인 에러 발생 시
       console.error("로그인 에러:", error);
       Alert.alert("오류", "네트워크 오류가 발생했습니다");
     }
 
-    setModalVisible(false);
+    setLoginModalVisible(false);
   };
 
   return (
     <View style={styles.container}>
-      <Pressable onPress={() => setModalVisible(true)}>
-        <Text style={styles.loginText}>로그인하세요 &gt;</Text>
+      <Pressable
+        onPress={() => {
+          if (isLoggedIn) {
+            setLogoutModalVisible(true); // 로그인 상태 시 로그아웃 모달 보여줌
+          } else {
+            setLoginModalVisible(true); // 비로그인 상태 시 로그인 모달 보여줌
+          }
+        }}
+      >
+        <Text style={styles.loginText}>
+          {isLoggedIn ? `${username}님, 좋은 여행 되세요!` : "로그인하세요  >"}
+        </Text>
       </Pressable>
 
+      {/* 로그인 모달 */}
       <Modal
         animationType="fade"
         transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+        visible={loginModalVisible}
+        onRequestClose={() => setLoginModalVisible(false)}
       >
         {/* 입력 도중 다른 곳 터치 시 키보드 내림 */}
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -118,12 +141,48 @@ export default function MyPagePanel() {
                 </Text>
               </View>
 
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity onPress={() => setLoginModalVisible(false)}>
                 <Text style={styles.cancel}>닫기</Text>
               </TouchableOpacity>
             </View>
           </View>
         </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* 로그아웃 모달 */}
+      <Modal
+        visible={logoutModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.logoutModalBox}>
+            <Text style={styles.logoutTitle}>로그아웃 하시겠어요?</Text>
+            <Text style={styles.logoutMessage}>
+              언제든지 다시 로그인하실 수 있어요.
+            </Text>
+
+            <View style={styles.logoutButtonRow}>
+              <TouchableOpacity
+                style={styles.logoutCancelBtn}
+                onPress={() => setLogoutModalVisible(false)}
+              >
+                <Text style={styles.logoutCancelText}>다음에</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.logoutBtn}
+                onPress={() => {
+                  logout();
+                  setLogoutModalVisible(false);
+                }}
+              >
+                <Text style={styles.logoutText}>로그아웃</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -200,5 +259,53 @@ const styles = StyleSheet.create({
     color: "#888",
     textAlign: "center",
     marginTop: 10,
+  },
+  logoutModalBox: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 25,
+    width: "80%",
+    alignItems: "center",
+  },
+  logoutTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: theme.main_green,
+    marginBottom: 10,
+  },
+  logoutMessage: {
+    fontSize: 14,
+    color: "#555",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  logoutButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  logoutCancelBtn: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: "#eee",
+    borderTopLeftRadius: 8,
+    borderBottomLeftRadius: 8,
+    alignItems: "center",
+  },
+  logoutBtn: {
+    flex: 1,
+    padding: 12,
+    backgroundColor: theme.main_green,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    alignItems: "center",
+  },
+  logoutCancelText: {
+    color: "#888",
+    fontWeight: "500",
+  },
+  logoutText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
