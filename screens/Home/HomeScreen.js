@@ -79,7 +79,7 @@ export default function HomeScreen() {
 
       {/* 지도 영역 */}
       <View style={styles.mapContainer}>
-        <MapWebView userLocation={userLocation} />
+        <MapWebView userLocation={userLocation} range={range} />
       </View>
 
       {/* 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
