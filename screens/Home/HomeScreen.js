@@ -22,9 +22,6 @@ export default function HomeScreen() {
   const [currentTab, setCurrentTab] = useState("nearby"); // 현재 선택된 탭
   const [range, setRange] = useState(500); // 범위 (슬라이더로 조절)
 
-  const [userLocation, setUserLocation] = useState("Loading..."); // 사용자 현재 위치
-  const [locationPermission, setLocationPermission] = useState(true); // 위치 권한
-
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT * 0.6)).current;
   const handleMenuPress = () => {
     setCurrentTab("nearby");
@@ -34,43 +31,6 @@ export default function HomeScreen() {
     }).start();
   };
 
-  const getLocationPermission = async () => {
-    try {
-      console.log("위치 권한 요청 시작");
-      const { granted } = await Location.requestForegroundPermissionsAsync();
-      if (!granted) {
-        console.warn("위치 권한 거부됨");
-        setLocationPermission(false);
-        return false;
-      }
-      console.log("권한 결과 허용됨");
-      return true;
-    } catch (e) {
-      console.error("위치 권한 요청 에러:", e);
-      setLocationPermission(false);
-      return false;
-    }
-  };
-
-  const getUserLocation = async () => {
-    const isGranted = await getLocationPermission();
-    if (!isGranted) return;
-
-    try {
-      const {
-        coords: { latitude, longitude },
-      } = await Location.getCurrentPositionAsync({ accuracy: 5 });
-      setUserLocation({ latitude, longitude });
-      console.log("현재 위치:", latitude, longitude);
-    } catch (e) {
-      console.error("현재 위치 가져오기 실패:", e);
-    }
-  };
-
-  useEffect(() => {
-    getUserLocation();
-  }, []);
-
   return (
     <SafeAreaView style={styles.container}>
       {/* 검색창 & 슬라이더 */}
@@ -79,7 +39,7 @@ export default function HomeScreen() {
 
       {/* 지도 영역 */}
       <View style={styles.mapContainer}>
-        <MapWebView userLocation={userLocation} range={range} />
+        <MapWebView range={range} />
       </View>
 
       {/* 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}

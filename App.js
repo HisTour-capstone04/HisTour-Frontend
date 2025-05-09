@@ -9,6 +9,7 @@ import HomeScreen from "./screens/Home/HomeScreen";
 import DetailScreen from "./components/DetailScreen";
 import TmapScreen from "./MapTest";
 import MainNavigator from "./navigation/MainNavigator";
+import { UserLocationProvider } from "./contexts/UserLocationContext";
 
 const Stack = createNativeStackNavigator();
 
@@ -17,9 +18,11 @@ export default function App() {
     // <StatusBar style="auto" />
     // <HomeScreen />
     //    <TmapScreen />
-    <AuthProvider>
-      <MainNavigator />
-    </AuthProvider>
+    <UserLocationProvider>
+      <AuthProvider>
+        <MainNavigator />
+      </AuthProvider>
+    </UserLocationProvider>
   );
 }
 

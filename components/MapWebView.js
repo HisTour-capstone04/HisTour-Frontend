@@ -1,14 +1,33 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AppState, Alert, Linking } from "react-native";
 import { WebView } from "react-native-webview";
-import * as Location from "expo-location";
+import { useUserLocation } from "../contexts/UserLocationContext";
 
 export default function MapWebView({ range }) {
   const webViewRef = useRef(null);
-  const [appState, setAppState] = useState(AppState.currentState);
-  const [fromSettings, setFromSettings] = useState(false);
+  const { userLocation } = useUserLocation();
 
-  // range 실시간 반영 - range 변경되면 web에 메시지 보냄
+  // 사용자 위치 업데이트
+  useEffect(() => {
+    if (
+      webViewRef.current &&
+      userLocation &&
+      userLocation.latitude &&
+      userLocation.longitude
+    ) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "USER_LOCATION_UPDATE",
+          payload: {
+            latitude: userLocation.latitude,
+            longitude: userLocation.longitude,
+            radius: range,
+          },
+        })
+      );
+    }
+  }, [userLocation]);
+
+  // 사용자 반경 업데이트
   useEffect(() => {
     if (webViewRef.current) {
       webViewRef.current.postMessage(
@@ -20,76 +39,30 @@ export default function MapWebView({ range }) {
     }
   }, [range]);
 
-  /*
-    // 앱 상태 감지해서 설정 갔다오면 웹 뷰 새로고침
-    useEffect(() => {
-      const handleAppStateChange = (nextAppState) => {
-        if (appState.match(/inactive|background/) && nextAppState === "active") {
-          if (fromSettings && webViewRef.current) {
-            webViewRef.current.reload();
-            setFromSettings(false);
-          }
-        }
-        setAppState(nextAppState);
-      };
-
-      const subscription = AppState.addEventListener(
-        "change",
-        handleAppStateChange
-      );
-      return () => subscription.remove();
-    }, [appState, fromSettings]);
-  */
-
-  // 웹에서 보낸 메시지 처리
+  // RN에서 메시지 처리
   const handleMessage = async (event) => {
     const message = JSON.parse(event.nativeEvent.data);
 
-    // GPS 권한 요청 메시지
-    if (message.type === "GPS_PERMISSIONS") {
-      /*
-        const servicesEnabled = await Location.hasServicesEnabledAsync();
-        if (!servicesEnabled) {
-          Alert.alert("위치 꺼짐", "기기 설정에서 위치 서비스를 켜주세요", [
-            {
-              text: "설정으로 이동",
-              onPress: () => {
-                setFromSettings(true);
-                Linking.openSettings();
-              },
+    // 맨 처음 위치 처리
+    if (message.type === "REQUEST_LOCATION") {
+      console.log("초기 처리");
+      if (
+        webViewRef.current &&
+        userLocation !== "Loading..." &&
+        userLocation.latitude &&
+        userLocation.longitude
+      ) {
+        webViewRef.current.postMessage(
+          JSON.stringify({
+            type: "USER_LOCATION_UPDATE",
+            payload: {
+              latitude: userLocation.latitude,
+              longitude: userLocation.longitude,
+              radius: range,
             },
-            { text: "취소", style: "cancel" },
-          ]);
-          return;
-        }
-
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          console.log("3");
-          Alert.alert("권한 거부됨", "위치 권한이 필요합니다", [
-            {
-              text: "설정으로 이동",
-              onPress: () => {
-                setFromSettings(true);
-                Linking.openSettings();
-              },
-            },
-            { text: "취소", style: "cancel" },
-          ]);
-          return;
-        }
-        */
-
-      // 웹으로 사용자 위치 & range 전달
-      Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, distanceInterval: 1 },
-        (loc) => {
-          const { latitude, longitude } = loc.coords;
-          webViewRef.current?.postMessage(
-            JSON.stringify({ latitude, longitude, radius: range })
-          );
-        }
-      );
+          })
+        );
+      }
     }
   };
 
@@ -111,26 +84,24 @@ export default function MapWebView({ range }) {
         <div id="map_div"></div>
         <script>
 
-          <!-- RN 웹 뷰로 열렸는지 확인하고, 맞으면 앱에 GPS 권한 요청 메시지 보냄 -->
           const isReactNativeWebView = !!window.ReactNativeWebView;
           if (isReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: "GPS_PERMISSIONS" }));
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: "REQUEST_LOCATION" }));
           }
-
 
           window.map = null;
           window.userMarker = null;
           window.userCircle = null;
 
 
-          <!-- 지도 초기화 & 업데이트 메서드 -->
+          // 지도 초기화 & 업데이트 메서드
           function updateMap(lat, lng, radius) {
 
-            <!-- 사용자 위치 -->
+            // 사용자 위치
             const userPos = new Tmapv2.LatLng(lat, lng);   
 
 
-            <!-- 지도가 없으면 지도 새로 생성 -->
+            // 지도가 없으면 지도 새로 생성
             if (!window.map) {
               window.map = new Tmapv2.Map("map_div", {
                 center: userPos,
@@ -140,7 +111,7 @@ export default function MapWebView({ range }) {
               });
             }
 
-            <!-- 사용자 위치 마커 없으면 새로 생성, 이미 생성된 경우 마커 실시간 사용자 위치로 이동-->
+            // 사용자 위치 마커 생성
             if (!window.userMarker) {
               window.userMarker = new Tmapv2.Marker({
                 position: userPos,
@@ -154,7 +125,7 @@ export default function MapWebView({ range }) {
               window.userMarker.setPosition(userPos);
             }
 
-            <!-- 사용자 반경 원 생성, 이미 생성된 경우 실시간 위치 업데이트 -->
+            // 사용자 반경 원 생성
             if (!window.userCircle) {
               window.userCircle = new Tmapv2.Circle({
                 center: userPos,
@@ -165,56 +136,51 @@ export default function MapWebView({ range }) {
                 fillOpacity: 0.2,
                 map: window.map
               });
-
             } else {
-              window.userCircle.setCenter(userPos);
-              window.userCircle.setRadius(radius);
+              // Circle은 setPosition이 따로 없어서 이렇게...
+              window.userCircle.setMap(null);
+              window.userCircle = new Tmapv2.Circle({
+                center: userPos,
+                radius: radius,
+                strokeWeight: 1,
+                strokeColor: "#3399ff",
+                fillColor: "#3399ff",
+                fillOpacity: 0.2,
+                map: window.map
+              });
             }
             
           }
 
-          <!-- RN으로부터 전달 받은 사용자 위치 & range를 지도에 반영 -->
+          // 사용자 위치 업뎃되면 지도도 업데이트
           const handlePositionUpdate = (data) => {
-            const { latitude, longitude, radius } = data;
+            const { latitude, longitude, radius } = data.payload;
             if (latitude && longitude && radius) {
               updateMap(latitude, longitude, radius);
             }
           };
 
 
-          <!-- 웹에서 메세지 처리 for iOS -->
+          // 웹에서 메세지 처리
           window.addEventListener("message", (event) => {
             try {
               const data = JSON.parse(event.data);
 
-              if (data.type === "UPDATE_RADIUS") {
-                if (window.userCircle) {
-                  window.userCircle.setRadius(data.radius);
-                }
-              } else {
-                handlePositionUpdate(data);
+              if (data.type === "USER_LOCATION_UPDATE") {
+              handlePositionUpdate(data);
               }
-            } catch (e) {
-              console.error("메시지 처리 오류:", e);
-            }
-          });
-
-          <!-- 웹에서 메세지 처리 for Android -->
-          document.addEventListener("message", (event) => {
-            try {
-              const data = JSON.parse(event.data);
 
               if (data.type === "UPDATE_RADIUS") {
                 if (window.userCircle) {
                   window.userCircle.setRadius(data.radius);
                 }
-              } else {
-                handlePositionUpdate(data);
               }
+
             } catch (e) {
               console.error("메시지 처리 오류:", e);
             }
-          });
+          } 
+          );
 
         </script>
       </body>
