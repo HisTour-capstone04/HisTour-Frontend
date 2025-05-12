@@ -6,14 +6,21 @@ import React, {
   useRef,
 } from "react";
 import { useUserLocation } from "./UserLocationContext";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
 const HeritageContext = createContext();
 
 export function HeritageProvider({ children, range }) {
   const { userLocation } = useUserLocation();
   const [heritages, setHeritages] = useState([]);
-
   const [lastFetchedLocation, setLastFetchedLocation] = useState(null);
+
+  const debouncedRange = useDebouncedValue(range, 300); // debounce 처리 (300ms동안 슬라이더 변화 없을 경우 range 설정)
+
+  const requestId = useRef(0); // fetch 요청 번호
+  const currentRequestId = useRef(0); // 최신 요청 번호
+
+  const [isLoading, setIsLoading] = useState(false); // 로딩 상태
 
   // 거리 계산 함수 (Haversine 공식)
   const getDistance = (loc1, loc2) => {
@@ -39,14 +46,28 @@ export function HeritageProvider({ children, range }) {
       return;
     }
 
+    // fetch 요청 번호 설정
+    requestId.current += 1;
+    const myRequestId = requestId.current; // 해당 건의 요청 번호
+    currentRequestId.current = myRequestId; // 가장 최신 요청 번호
+
+    // 로딩 시작
+    setIsLoading(true);
+
     // fetch 과정
     try {
       console.log("context: 유적지 fetch 시작");
       const response = await fetch(
-        `http://ec2-43-203-173-84.ap-northeast-2.compute.amazonaws.com:8080/api/heritages/nearby?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${range}`
+        `http://ec2-43-203-173-84.ap-northeast-2.compute.amazonaws.com:8080/api/heritages/nearby?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${debouncedRange}`
       );
       const result = await response.json();
       const list = result?.data?.heritages ?? [];
+
+      // 이 fetch 요청이 가장 최신 요청이 아니라면 무시
+      if (currentRequestId.current !== myRequestId) {
+        console.log("무시됨: 이전 요청 도착");
+        return;
+      }
 
       setHeritages(list);
 
@@ -57,6 +78,9 @@ export function HeritageProvider({ children, range }) {
       );
     } catch (e) {
       console.error("context - 유적지 fetch 실패:", e);
+    } finally {
+      // 로딩 종료
+      setIsLoading(false);
     }
   };
 
@@ -84,19 +108,19 @@ export function HeritageProvider({ children, range }) {
     }
   }, [userLocation]);
 
-  // range 변경 시 유적지 fetch
+  // debouncedRange 변경 시 유적지 fetch
   useEffect(() => {
     // 사용자 위치가 아직 준비되지 않은 경우 탈출
     if (!userLocation || !userLocation.latitude || !userLocation.longitude) {
       return;
     }
-    console.log("context: range 변경됨: " + range);
+    console.log("context: debouncedRange 변경됨: " + debouncedRange);
     fetchNearbyHeritages();
-  }, [range]);
+  }, [debouncedRange]);
 
   return (
     <HeritageContext.Provider
-      value={{ heritages, fetchNearbyHeritages, getDistance }}
+      value={{ heritages, fetchNearbyHeritages, getDistance, isLoading }}
     >
       {children}
     </HeritageContext.Provider>

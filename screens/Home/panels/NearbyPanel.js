@@ -13,13 +13,13 @@ import ChatbotButton from "../../../components/ChatbotButton";
 import { useHeritages } from "../../../contexts/HeritageContext";
 
 export default function NearbyPanel() {
-  const { heritages, getDistance } = useHeritages();
+  const { heritages, getDistance, isLoading } = useHeritages();
   const { userLocation } = useUserLocation();
 
   return (
     <View style={styles.container}>
       <Text style={{ marginBottom: 10 }}>
-        발견된 유적지 수: {heritages.length}
+        발견된 유적지 수: {isLoading ? "로딩 중..." : heritages.length}
       </Text>
       <ScrollView>
         {heritages.map((heritage) => (
