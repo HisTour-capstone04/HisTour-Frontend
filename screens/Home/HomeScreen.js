@@ -15,7 +15,7 @@ import FooterTabBar from "./FooterTabBar";
 import WebView from "react-native-webview";
 import ChatbotButton from "../../components/ChatbotButton";
 import MapWebView from "../../components/MapWebView";
-import * as Location from "expo-location";
+import { HeritageProvider } from "../../contexts/HeritageContext";
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 export default function HomeScreen() {
@@ -32,30 +32,32 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* 검색창 & 슬라이더 */}
-      <SearchBar onMenuPress={handleMenuPress} />
-      <RangeSlider range={range} setRange={setRange} />
+    <HeritageProvider range={range}>
+      <SafeAreaView style={styles.container}>
+        {/* 검색창 & 슬라이더 */}
+        <SearchBar onMenuPress={handleMenuPress} />
+        <RangeSlider range={range} setRange={setRange} />
 
-      {/* 지도 영역 */}
-      <View style={styles.mapContainer}>
-        <MapWebView range={range} />
-      </View>
+        {/* 지도 영역 */}
+        <View style={styles.mapContainer}>
+          <MapWebView range={range} />
+        </View>
 
-      {/* 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
-      <ChatbotButton
-        onPress={() => {
-          // ChatScreen으로 이동하거나 상태변경 등!
-          console.log("챗봇 버튼 눌림");
-        }}
-      />
+        {/* 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
+        <ChatbotButton
+          onPress={() => {
+            // ChatScreen으로 이동하거나 상태변경 등!
+            console.log("챗봇 버튼 눌림");
+          }}
+        />
 
-      {/* 슬라이드 패널 */}
-      <SlidePanel currentTab={currentTab} slideAnim={slideAnim} />
+        {/* 슬라이드 패널 */}
+        <SlidePanel currentTab={currentTab} slideAnim={slideAnim} />
 
-      {/* 하단 탭바 */}
-      <FooterTabBar currentTab={currentTab} onTabPress={setCurrentTab} />
-    </SafeAreaView>
+        {/* 하단 탭바 */}
+        <FooterTabBar currentTab={currentTab} onTabPress={setCurrentTab} />
+      </SafeAreaView>
+    </HeritageProvider>
   );
 }
 

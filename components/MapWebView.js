@@ -27,26 +27,24 @@ export default function MapWebView({ range }) {
   // 유적지 fetch 후 WebView에 전송
   const fetchNearbyHeritages = async () => {
     if (!userLocation || !userLocation.latitude || !userLocation.longitude) {
-      console.log("userLocation이 아직 준비되지 않음, fetch 중단");
+      // console.log("userLocation이 아직 준비되지 않음, fetch 중단");
       return;
     }
 
     try {
-      console.log("유적지 탐색");
+      // console.log("유적지 탐색");
       const response = await fetch(
         `http://ec2-43-203-173-84.ap-northeast-2.compute.amazonaws.com:8080/api/heritages/nearby?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${range}`
       );
       const result = await response.json();
 
-      console.log("찾은 유적지 수: " + result.data.count);
-      console.log(
+      // console.log("찾은 유적지 수: " + result.data.count);
+      /*console.log(
         "유적지 목록: " +
           JSON.stringify(result.data.heritages, [
-            "name",
-            "latitude",
-            "longitude",
+            "name"
           ])
-      );
+      );*/
 
       const heritages = result?.data?.heritages;
       if (heritages && webViewRef.current) {
@@ -64,13 +62,14 @@ export default function MapWebView({ range }) {
 
   // 사용자 위치 변경되면 위치 업데이트 & 주변 유적지 요청
   useEffect(() => {
+    // 사용자 위치가 아직 준비되지 않은 경우 탈출
     if (
       !userLocation ||
       !userLocation.latitude ||
       !userLocation.longitude ||
       !webViewRef.current
     ) {
-      return; // 안전하게 탈출
+      return;
     }
 
     if (
@@ -90,13 +89,13 @@ export default function MapWebView({ range }) {
         })
       );
 
-      console.log(
+      /*console.log(
         "위치 변경됨: " + userLocation.latitude,
         userLocation.longitude
-      );
+      );*/
 
+      // 유적지 fetch
       if (
-        !userLocation ||
         !lastFetchedLocation ||
         getDistance(userLocation, lastFetchedLocation) > 50
       ) {
@@ -124,7 +123,7 @@ export default function MapWebView({ range }) {
           radius: range,
         })
       );
-      console.log("range 변경됨: " + range);
+      // console.log("range 변경됨: " + range);
       fetchNearbyHeritages();
     }
   }, [range]);

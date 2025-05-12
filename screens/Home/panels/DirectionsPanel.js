@@ -1,5 +1,15 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from "react-native";
+
+import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import ChatbotButton from "../../../components/ChatbotButton";
 
 export default function DirectionsPanel() {
   return (
