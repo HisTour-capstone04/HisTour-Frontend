@@ -54,6 +54,10 @@ export function HeritageProvider({ children, range }) {
     // 로딩 시작
     setIsLoading(true);
 
+    // TODO: UX 개선 - range 바꿀 때마다 마커가 초기화되도록. 이전에 나온 마커 안 나오도록
+    // 그리고 기존 마커는 애니메이션 x 새롭게 발견된 마커만 애니메이션 적용 되도록 수정할 것...
+    // setHeritages([]);
+
     // fetch 과정
     try {
       console.log("context: 유적지 fetch 시작");

@@ -1,16 +1,30 @@
-import HomeScreen from "../screens/Home/HomeScreen";
-import ChatbotScreen from "../screens/ChatbotScreen"; // 👈 추가!
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
+
+import HomeScreen from "../screens/Home/HomeScreen";
+import SearchScreen from "../screens/SearchScreen";
+import ChatbotScreen from "../screens/ChatbotScreen";
 
 const Stack = createNativeStackNavigator();
 
 export default function MainNavigator() {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        initialRouteName="Home"
+        screenOptions={{ headerShown: false }}
+      >
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Chatbot" component={ChatbotScreen} />
+        <Stack.Screen
+          name="Search"
+          component={SearchScreen}
+          options={{ animation: "none" }}
+        />
+        <Stack.Screen
+          name="Chatbot"
+          component={ChatbotScreen}
+          options={{ animation: "slide_from_right" }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

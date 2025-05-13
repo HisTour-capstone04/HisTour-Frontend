@@ -12,15 +12,18 @@ import SearchBar from "./SearchBar";
 import RangeSlider from "./RangeSlider";
 import SlidePanel from "./SlidePanel";
 import FooterTabBar from "./FooterTabBar";
-import WebView from "react-native-webview";
+
 import ChatbotButton from "../../components/ChatbotButton";
 import MapWebView from "../../components/MapWebView";
 import { HeritageProvider } from "../../contexts/HeritageContext";
+
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 export default function HomeScreen() {
   const [currentTab, setCurrentTab] = useState("nearby"); // 현재 선택된 탭
   const [range, setRange] = useState(500); // 범위 (슬라이더로 조절)
+
+  const [isSearchMode, setIsSearchMode] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT * 0.6)).current;
   const handleMenuPress = () => {
@@ -34,8 +37,9 @@ export default function HomeScreen() {
   return (
     <HeritageProvider range={range}>
       <SafeAreaView style={styles.container}>
-        {/* 검색창 & 슬라이더 */}
-        <SearchBar onMenuPress={handleMenuPress} />
+        {/* 검색창 */}
+        <SearchBar />
+        {/* 슬라이더 */}
         <RangeSlider range={range} setRange={setRange} />
 
         {/* 지도 영역 */}
@@ -44,12 +48,7 @@ export default function HomeScreen() {
         </View>
 
         {/* 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
-        <ChatbotButton
-          onPress={() => {
-            // ChatScreen으로 이동하거나 상태변경 등!
-            console.log("챗봇 버튼 눌림");
-          }}
-        />
+        <ChatbotButton onPress={() => console.log("챗봇 버튼 눌림")} />
 
         {/* 슬라이드 패널 */}
         <SlidePanel currentTab={currentTab} slideAnim={slideAnim} />

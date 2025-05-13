@@ -225,7 +225,7 @@ export default function MapWebView({ range }) {
             };
 
 
-            // 웹에서 메세지 처리
+            // RN -> 웹 메세지 처리
             window.addEventListener("message", (event) => {
               try {
                 const data = JSON.parse(event.data);
