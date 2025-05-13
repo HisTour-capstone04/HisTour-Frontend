@@ -117,19 +117,37 @@ export default function MapWebView({ range }) {
 
             // 유적지 마커 렌더링
             function renderHeritageMarkers(heritages) {
+              
+              // 기존 마커 지우기
               clearHeritageMarkers();
               
-              // TODO: 좌표 기준으로 유적지를 그룹핑해서 좌표 똑같은 곳은 마커 하나만 나오게 하기, ~~~외 N곳 이렇게 나오게...
+              // 동일한 좌표를 가진 유적지를 그룹핑해서 위치 같은 유적지들은 마커 하나만 나오게 하기
+              // ex) ~~~ 외 n 곳
+
+              // 좌표를 key로 그룹핑된 유적지를 담는 객체
               const groupedByPosition = {};
               
-
-
+              // 유적지 배열 순회하면서 그룹핑
               heritages.forEach((heritage) => {
-                const pos = new Tmapv2.LatLng(heritage.latitude, heritage.longitude);
+                const key = heritage.latitude + "," + heritage.longitude;
+                if (!groupedByPosition[key]) {
+                  groupedByPosition[key] = [];
+                }
+                groupedByPosition[key].push(heritage);
+              });
+
+              // 그룹핑된 좌표 기준으로 마커 생성
+              Object.entries(groupedByPosition).forEach(([key, group]) => {
+                const [lat, lng] = key.split(",").map(Number);
+                const pos = new Tmapv2.LatLng(lat, lng);
+                const firstName = group[0].name;
+                const count = group.length;
+                const label = (count === 1) ? firstName : firstName + " 외 " + (count - 1) + "곳";
+                
                 const marker = new Tmapv2.Marker({
                   position: pos,
                   animation: Tmapv2.MarkerOptions.ANIMATE_BOUNCE_ONCE,
-                  label: heritage.name,
+                  label: label,
                   labelSize: "30",
                   icon: "https://www.svgrepo.com/show/376955/map-marker.svg",
                   iconSize: new Tmapv2.Size(70, 70),
@@ -144,7 +162,6 @@ export default function MapWebView({ range }) {
 
               // 사용자 위치
               const userPos = new Tmapv2.LatLng(lat, lng);   
-
 
               // 지도가 없으면 지도 새로 생성
               if (!window.map) {

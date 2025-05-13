@@ -16,13 +16,30 @@ export default function NearbyPanel() {
   const { heritages, getDistance, isLoading } = useHeritages();
   const { userLocation } = useUserLocation();
 
+  // 사용자와 떨어진 거리 순서대로 정렬된 유적지 배열
+  const sortedHeritages = [...heritages].sort((a, b) => {
+    // 사용자 위치 아직 확인 안 되면 정렬 x
+    if (!userLocation) return 0;
+
+    const distanceA = getDistance(userLocation, {
+      latitude: a.latitude,
+      longitude: a.longitude,
+    });
+    const distanceB = getDistance(userLocation, {
+      latitude: b.latitude,
+      longitude: b.longitude,
+    });
+
+    return distanceA - distanceB;
+  });
+
   return (
     <View style={styles.container}>
       <Text style={{ marginBottom: 10 }}>
         발견된 유적지 수: {isLoading ? "로딩 중..." : heritages.length}
       </Text>
       <ScrollView>
-        {heritages.map((heritage) => (
+        {sortedHeritages.map((heritage) => (
           <View key={heritage.id} style={styles.card}>
             <View style={styles.header}>
               <Text style={styles.name}>{heritage.name}</Text>
@@ -68,7 +85,6 @@ export default function NearbyPanel() {
           </View>
         ))}
       </ScrollView>
-      <ChatbotButton />
     </View>
   );
 }
