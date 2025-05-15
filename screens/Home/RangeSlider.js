@@ -12,7 +12,7 @@ export default function RangeSlider({ range, setRange }) {
       </Text>
       <Slider
         style={{ flex: 1, height: 40 }}
-        minimumValue={100}
+        minimumValue={0}
         maximumValue={2000}
         step={500}
         value={range}

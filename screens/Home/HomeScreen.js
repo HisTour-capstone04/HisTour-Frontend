@@ -23,8 +23,6 @@ export default function HomeScreen() {
   const [currentTab, setCurrentTab] = useState("nearby"); // 현재 선택된 탭
   const [range, setRange] = useState(500); // 범위 (슬라이더로 조절)
 
-  const [isSearchMode, setIsSearchMode] = useState(false);
-
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT * 0.6)).current;
   const handleMenuPress = () => {
     setCurrentTab("nearby");

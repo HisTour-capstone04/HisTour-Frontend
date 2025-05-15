@@ -67,7 +67,7 @@ export function HeritageProvider({ children, range }) {
       const result = await response.json();
       const list = result?.data?.heritages ?? [];
 
-      // 이 fetch 요청이 가장 최신 요청이 아니라면 무시
+      // 이 fetch 응답이 가장 최신 요청의 응답이 아니라면 무시
       if (currentRequestId.current !== myRequestId) {
         console.log("무시됨: 이전 요청 도착");
         return;
@@ -78,7 +78,7 @@ export function HeritageProvider({ children, range }) {
       console.log("context - 유적지 " + result?.data?.count + "개 불러옴");
       console.log(
         "context - 유적지 목록: " +
-          JSON.stringify(result.data.heritages, ["name"])
+          JSON.stringify(result.data.heritages, ["id"])
       );
     } catch (e) {
       console.error("context - 유적지 fetch 실패:", e);

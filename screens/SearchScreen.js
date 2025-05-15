@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import Toast from "react-native-toast-message";
 
 const MAX_RECENT_KEYWORDS = 15; // 저장 가능한 최근 검색어 최대 개수
 
@@ -86,6 +87,11 @@ export default function SearchScreen() {
   const clearAllKeywords = async () => {
     await AsyncStorage.removeItem("recentKeywords");
     setRecentKeywords([]);
+    Toast.show({
+      type: "info",
+      text1: "최근 검색어 내역이 삭제되었습니다",
+      position: "bottom",
+    });
   };
 
   const fetchSearchResults = async (keyword) => {

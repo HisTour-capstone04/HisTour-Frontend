@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
 
 import HomeScreen from "../screens/Home/HomeScreen";
+import AuthScreen from "../screens/AuthScreen";
 import SearchScreen from "../screens/SearchScreen";
 import ChatbotScreen from "../screens/ChatbotScreen";
 
@@ -15,6 +16,11 @@ export default function MainNavigator() {
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen
+          name="Auth"
+          component={AuthScreen}
+          options={{ animation: "slide_from_bottom" }}
+        />
         <Stack.Screen
           name="Search"
           component={SearchScreen}

@@ -31,11 +31,15 @@ export default function SlidePanel({ currentTab, slideAnim }) {
           Animated.spring(slideAnim, {
             toValue: SCREEN_HEIGHT * 0.2,
             useNativeDriver: false,
+            damping: 25,
+            mass: 0.8,
           }).start();
         } else {
           Animated.spring(slideAnim, {
-            toValue: SCREEN_HEIGHT * 0.6,
+            toValue: SCREEN_HEIGHT * 0.2,
             useNativeDriver: false,
+            damping: 25,
+            mass: 0.8,
           }).start();
         }
       },
@@ -58,11 +62,13 @@ export default function SlidePanel({ currentTab, slideAnim }) {
   };
 
   return (
-    <Animated.View
-      style={[styles.slideUpPanel, { top: slideAnim }]}
-      {...panResponder.panHandlers}
-    >
+    <Animated.View style={[styles.slideUpPanel, { top: slideAnim }]}>
+      {/* 드래그 가능 영역 */}
+      <View style={styles.dragZone} {...panResponder.panHandlers} />
+
+      {/* 핸들 */}
       <View style={styles.panelHandle} />
+
       {renderContent()}
     </Animated.View>
   );
@@ -84,6 +90,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
+  },
+  dragZone: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60, // 터치 영역만 넉넉히 확보
   },
   panelHandle: {
     width: 40,

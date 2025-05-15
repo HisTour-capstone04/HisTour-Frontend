@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Toast from "react-native-toast-message";
 
 export const AuthContext = createContext();
 
@@ -40,6 +41,11 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.removeItem("username");
       setAccessToken(null);
       setUsername(null);
+      Toast.show({
+        type: "success",
+        text1: "로그아웃 되었습니다",
+        position: "bottom",
+      });
     } catch (e) {
       console.log("로그아웃 실패:", e);
     }
