@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { WebView } from "react-native-webview";
 import { useUserLocation } from "../contexts/UserLocationContext";
 import { useHeritages } from "../contexts/HeritageContext";
+import { TMAP_APP_KEY } from "../config/apiKeys";
 
 export default function MapWebView({ range }) {
   const webViewRef = useRef(null);
@@ -86,7 +87,7 @@ export default function MapWebView({ range }) {
         <head>
           <meta charset="utf-8" />
           <title>HisTourMap</title> 
-          <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=M2yCxkJIUu3iIcsWIeUjP6vyGY2D3Iz72I8bFtHV"></script>
+          <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=${TMAP_APP_KEY}"></script>
           <style>
             html, body { margin: 0; padding: 0; height: 100%; }
             #map_div { width: 100%; height: 100%; }

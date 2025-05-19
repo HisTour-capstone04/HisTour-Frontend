@@ -76,7 +76,7 @@ export default function AuthScreen() {
       await login(json.data.username, json.data.accessToken);
       navigation.goBack();
     } catch (error) {
-      // 로그인 에러 발생 시시
+      // 로그인 에러 발생 시
       console.error("로그인 에러:", error);
       Toast.show({
         type: "error",
@@ -127,7 +127,7 @@ export default function AuthScreen() {
       const json = await response.json();
 
       // 회원가입 실패 시
-      if (!response.ok) {
+      if (!response.ok || !json.data) {
         Toast.show({
           type: "error",
           text1: json.responseMessage || "서버 오류가 발생했습니다",

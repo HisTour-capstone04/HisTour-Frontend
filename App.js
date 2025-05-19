@@ -6,6 +6,8 @@ import Toast from "react-native-toast-message";
 import { AuthProvider } from "./contexts/AuthContext";
 import MainNavigator from "./navigation/MainNavigator";
 import { UserLocationProvider } from "./contexts/UserLocationContext";
+import { RouteProvider } from "./contexts/RouteContext";
+import { ViaProvider } from "./contexts/ViaContext";
 
 const Stack = createNativeStackNavigator();
 
@@ -14,7 +16,11 @@ export default function App() {
     <>
       <UserLocationProvider>
         <AuthProvider>
-          <MainNavigator />
+          <RouteProvider>
+            <ViaProvider>
+              <MainNavigator />
+            </ViaProvider>
+          </RouteProvider>
         </AuthProvider>
       </UserLocationProvider>
       <Toast />

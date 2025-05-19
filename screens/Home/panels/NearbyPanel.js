@@ -8,19 +8,31 @@ import {
   Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import Toast from "react-native-toast-message";
 import { useUserLocation } from "../../../contexts/UserLocationContext";
 import ChatbotButton from "../../../components/ChatbotButton";
 import { useHeritages } from "../../../contexts/HeritageContext";
+import { useRoute } from "../../../contexts/RouteContext";
+import { useNavigation } from "@react-navigation/native";
+import { useVia } from "../../../contexts/ViaContext";
 
 export default function NearbyPanel() {
   const { heritages, getDistance, isLoading } = useHeritages();
   const { userLocation } = useUserLocation();
+  const { setDestination } = useRoute();
+  const { addStopover } = useVia();
 
-  // 사용자와 떨어진 거리 순서대로 정렬된 유적지 배열
+  const navigation = useNavigation();
+  const [expandedIds, setExpandedIds] = useState([]);
+
+  const toggleDescription = (id) => {
+    setExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
+  };
+
   const sortedHeritages = [...heritages].sort((a, b) => {
-    // 사용자 위치 아직 확인 안 되면 정렬 x
     if (!userLocation) return 0;
-
     const distanceA = getDistance(userLocation, {
       latitude: a.latitude,
       longitude: a.longitude,
@@ -29,7 +41,6 @@ export default function NearbyPanel() {
       latitude: b.latitude,
       longitude: b.longitude,
     });
-
     return distanceA - distanceB;
   });
 
@@ -39,51 +50,94 @@ export default function NearbyPanel() {
         발견된 유적지 수: {isLoading ? "로딩 중..." : heritages.length}
       </Text>
       <ScrollView>
-        {sortedHeritages.map((heritage) => (
-          <View key={heritage.id} style={styles.card}>
-            <View style={styles.header}>
-              <Text style={styles.name}>{heritage.name}</Text>
-              <Text style={styles.distance}>
-                {userLocation
-                  ? `${Math.round(
-                      getDistance(userLocation, {
-                        latitude: heritage.latitude,
-                        longitude: heritage.longitude,
-                      })
-                    )}m`
-                  : "거리 계산 중..."}
+        {sortedHeritages.map((heritage) => {
+          const isExpanded = expandedIds.includes(heritage.id);
+          const firstLine = heritage.description?.split("\n")[0] || "";
+
+          return (
+            <View key={heritage.id} style={styles.card}>
+              <View style={styles.header}>
+                <Text style={styles.name}>{heritage.name}</Text>
+                <Text style={styles.distance}>
+                  {userLocation
+                    ? `${Math.round(
+                        getDistance(userLocation, {
+                          latitude: heritage.latitude,
+                          longitude: heritage.longitude,
+                        })
+                      )}m`
+                    : "거리 계산 중..."}
+                </Text>
+              </View>
+              <Text style={styles.address}>{heritage.detailAddress}</Text>
+              <Text style={styles.description}>
+                {isExpanded ? heritage.description : firstLine}
               </Text>
+              {heritage.description && (
+                <TouchableOpacity
+                  onPress={() => toggleDescription(heritage.id)}
+                  style={{ alignSelf: "center", marginBottom: 6 }}
+                >
+                  <Ionicons
+                    name={
+                      isExpanded ? "chevron-up-outline" : "chevron-down-outline"
+                    }
+                    size={18}
+                    color="#666"
+                  />
+                </TouchableOpacity>
+              )}
+              {heritage.imageUrls?.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.imageScroll}
+                >
+                  {heritage.imageUrls.map((url, idx) => (
+                    <Image
+                      key={idx}
+                      source={{ uri: url }}
+                      style={styles.image}
+                    />
+                  ))}
+                </ScrollView>
+              )}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity style={styles.iconButton}>
+                  <Ionicons name="bookmark-outline" size={24} color="#444" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => {
+                    setDestination(heritage);
+                  }}
+                >
+                  <Ionicons name="navigate-outline" size={24} color="#444" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => {
+                    Toast.show({
+                      type: "success",
+                      text1: "경유지에 추가되었습니다",
+                      position: "bottom",
+                    });
+                    addStopover(heritage);
+                  }}
+                >
+                  <Ionicons name="add-circle-outline" size={24} color="#444" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.iconButton}>
+                  <Ionicons
+                    name="chatbubble-ellipses-outline"
+                    size={24}
+                    color="#444"
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-            <Text style={styles.address}>{heritage.detailAddress}</Text>
-            <Text style={styles.description}>{heritage.description}</Text>
-            {heritage.imageUrls?.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.imageScroll}
-              >
-                {heritage.imageUrls.map((url, idx) => (
-                  <Image key={idx} source={{ uri: url }} style={styles.image} />
-                ))}
-              </ScrollView>
-            )}
-            <View style={styles.buttonRow}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="bookmark-outline" size={24} color="#444" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons name="add-circle-outline" size={24} color="#444" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.iconButton}>
-                <Ionicons
-                  name="chatbubble-ellipses-outline"
-                  size={24}
-                  color="#444"
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -120,7 +174,7 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 13,
     color: "#333",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   imageScroll: {
     marginBottom: 10,

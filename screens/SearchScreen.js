@@ -15,13 +15,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
+import { useUserLocation } from "../contexts/UserLocationContext";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import Toast from "react-native-toast-message";
 
+import { useRoute } from "../contexts/RouteContext";
+
+import { TMAP_APP_KEY } from "../config/apiKeys";
 const MAX_RECENT_KEYWORDS = 15; // 저장 가능한 최근 검색어 최대 개수
 
 export default function SearchScreen() {
+  const { userLocation } = useUserLocation();
   const navigation = useNavigation();
+  const { setDestination, setRouteData } = useRoute();
+
   const [input, setInput] = useState("");
   const debouncedInput = useDebouncedValue(input, 500); // 500ms 후 자동 반영
 
@@ -128,6 +135,37 @@ export default function SearchScreen() {
     }
   };
 
+  const fetchTransitRoute = async ({ startX, startY, endX, endY }) => {
+    try {
+      console.log("경로 탐색 시작:", { startX, startY, endX, endY });
+      const response = await fetch(
+        "https://apis.openapi.sk.com/transit/routes",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            appKey: TMAP_APP_KEY,
+          },
+          body: JSON.stringify({
+            startX,
+            startY,
+            endX,
+            endY,
+            count: 3,
+            lang: 0,
+            format: "json",
+          }),
+        }
+      );
+
+      const result = await response.json();
+      console.log("경로 API 응답:", result);
+      return result;
+    } catch (error) {
+      console.error("경로 fetch 실패:", error);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* 상단 입력창 */}
@@ -210,9 +248,33 @@ export default function SearchScreen() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => {
-                saveKeyword(item.name);
-                console.log("상세 보기로 이동");
+              onPress={async () => {
+                try {
+                  saveKeyword(item.name); // 최근 검색어
+                  setDestination(item); // 목적지 저장
+
+                  setTimeout(() => {
+                    navigation.navigate("Home"); // 50ms 뒤에 이동
+                  }, 50);
+
+                  console.log("선택한 아이템:", item);
+                  console.log("사용자 위치:", userLocation);
+                  // 현재 위치 기반 경로 계산
+                  if (userLocation) {
+                    const routeRes = await fetchTransitRoute({
+                      startX: userLocation.longitude,
+                      startY: userLocation.latitude,
+                      endX: item.longitude,
+                      endY: item.latitude,
+                    });
+                    setRouteData(routeRes);
+                    // TODO: 경로 상태 저장 또는 WebView로 전달
+                    console.log("자동차/버스/도보 경로 결과:", routeRes);
+                  }
+                } catch (e) {
+                  console.error("경로 계산 중 오류:", e);
+                  navigation.navigate("Home");
+                }
               }}
             >
               <Text style={styles.resultItem}>{item.name}</Text>

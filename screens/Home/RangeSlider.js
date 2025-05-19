@@ -7,9 +7,6 @@ import { theme } from "../../theme/colors";
 export default function RangeSlider({ range, setRange }) {
   return (
     <View style={styles.sliderContainer}>
-      <Text style={styles.sliderLabel}>
-        {range >= 1000 ? `${range / 1000}km` : `${range}m`}
-      </Text>
       <Slider
         style={{ flex: 1, height: 40 }}
         minimumValue={0}
@@ -21,22 +18,30 @@ export default function RangeSlider({ range, setRange }) {
         maximumTrackTintColor={theme.gray}
         thumbTintColor={theme.main_green}
       />
+
+      {/* 슬라이더 아래 범위 표시 */}
+      <View style={styles.rangeLabelContainer}>
+        <Text style={styles.rangeLabel}>0m</Text>
+        <Text style={styles.rangeLabel}>2km</Text>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   sliderContainer: {
-    backgroundColor: "white",
-    flexDirection: "row",
-    alignItems: "center",
+    backgroundColor: "transparent",
     paddingHorizontal: 15,
     paddingBottom: 5,
+    marginTop: -5,
   },
-  sliderLabel: {
-    marginRight: 5,
-    fontSize: 14,
-    width: 50,
-    color: "#333",
+  rangeLabelContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  rangeLabel: {
+    fontSize: 12,
+    color: "#000", // 또는 "#333"
+    marginTop: -2,
   },
 });

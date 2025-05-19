@@ -16,6 +16,12 @@ import MyPagePanel from "./panels/MyPagePanel";
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 export default function SlidePanel({ currentTab, slideAnim }) {
+  const currentSlide = useRef(SCREEN_HEIGHT * 0.2);
+
+  slideAnim.addListener(({ value }) => {
+    currentSlide.current = value;
+  });
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -23,20 +29,33 @@ export default function SlidePanel({ currentTab, slideAnim }) {
       },
       onPanResponderMove: (_, gestureState) => {
         slideAnim.setValue(
-          Math.max(SCREEN_HEIGHT * 0.2, slideAnim._value + gestureState.dy)
+          Math.max(SCREEN_HEIGHT * 0.2, currentSlide.current + gestureState.dy)
         );
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dy < -50) {
+          // 위로 드래그 → 위로 올림
           Animated.spring(slideAnim, {
             toValue: SCREEN_HEIGHT * 0.2,
             useNativeDriver: false,
             damping: 25,
             mass: 0.8,
           }).start();
-        } else {
+        } else if (gestureState.dy > 50) {
+          // 아래로 드래그 → 아래로 내림
           Animated.spring(slideAnim, {
-            toValue: SCREEN_HEIGHT * 0.2,
+            toValue: SCREEN_HEIGHT * 0.6,
+            useNativeDriver: false,
+            damping: 25,
+            mass: 0.8,
+          }).start();
+        } else {
+          // 작은 드래그는 현재 위치 유지
+          Animated.spring(slideAnim, {
+            toValue:
+              currentSlide.current < SCREEN_HEIGHT * 0.5
+                ? SCREEN_HEIGHT * 0.2
+                : SCREEN_HEIGHT * 0.6,
             useNativeDriver: false,
             damping: 25,
             mass: 0.8,
