@@ -86,6 +86,7 @@ export default function MapWebView({ range }) {
         <html>
         <head>
           <meta charset="utf-8" />
+          
           <title>HisTourMap</title> 
           <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=${TMAP_APP_KEY}"></script>
           <style>
@@ -226,7 +227,7 @@ export default function MapWebView({ range }) {
             };
 
 
-            // RN -> 웹 메세지 처리
+            // RN -> 웹 메세지 처리 (for iOS)
             window.addEventListener("message", (event) => {
               try {
                 const data = JSON.parse(event.data);
@@ -250,6 +251,32 @@ export default function MapWebView({ range }) {
               }
             } 
             );
+
+            // RN -> 웹 메세지 처리 (for Android)
+            document.addEventListener("message", (event) => {
+              try {
+                const data = JSON.parse(event.data);
+
+                if (data.type === "USER_LOCATION_UPDATE") {
+                  handlePositionUpdate(data);
+                }
+
+                if (data.type === "UPDATE_RADIUS") {
+                  if (window.userCircle) {
+                    window.userCircle.setRadius(data.radius);
+                  }
+                }
+
+                if (data.type === "NEARBY_HERITAGES") {
+                  renderHeritageMarkers(data.payload);
+                }
+
+              } catch (e) {
+                console.error("메시지 처리 오류:", e);
+              }
+            } 
+            );
+
 
           </script>
         </body>

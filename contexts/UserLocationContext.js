@@ -66,7 +66,7 @@ export function UserLocationProvider({ children }) {
   // foreground 위치 추적 메서드
   const startForegroundWatching = async () => {
     return await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.High, distanceInterval: 1 }, // 1미터 움직일 때마다 위치 업데이트
+      { accuracy: Location.Accuracy.Balanced, distanceInterval: 1 }, // 1미터 움직일 때마다 위치 업데이트
       (loc) => {
         setUserLocation({
           latitude: loc.coords.latitude,
