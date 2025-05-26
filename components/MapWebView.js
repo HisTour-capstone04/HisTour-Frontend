@@ -3,11 +3,86 @@ import { WebView } from "react-native-webview";
 import { useUserLocation } from "../contexts/UserLocationContext";
 import { useHeritages } from "../contexts/HeritageContext";
 import { TMAP_APP_KEY } from "../config/apiKeys";
+import { useRoute } from "../contexts/RouteContext";
+import { useRouteMode } from "../contexts/RouteModeContext";
 
 export default function MapWebView({ range }) {
   const webViewRef = useRef(null);
   const { userLocation } = useUserLocation();
   const { heritages } = useHeritages();
+  const { routeData, routePoints } = useRoute();
+  const { routeMode } = useRouteMode();
+
+  // 길찾기 모드 종료 시 경로 지우기
+  useEffect(() => {
+    if (webViewRef.current && (!routeData || !routeData.features?.length)) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "CLEAR_ROUTE",
+        })
+      );
+    }
+  }, [routeData]);
+
+  // 경로 변경 시 지도에 경로 그리기
+  useEffect(() => {
+    // 1. 자동차 모드
+    if (
+      webViewRef.current &&
+      routeData &&
+      routeMode === "car" &&
+      routeData.features
+    ) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "DRAW_CAR_ROUTE",
+          payload: {
+            route: routeData,
+            points: routePoints,
+          },
+        })
+      );
+    }
+
+    // 2. 대중교통 모드
+    if (
+      webViewRef.current &&
+      routeMode === "transit" &&
+      routeData?.metaData?.plan?.itineraries?.length > 0
+    ) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "DRAW_TRANSIT_ROUTE",
+          payload: {
+            itineraries: routeData.metaData.plan.itineraries,
+          },
+        })
+      );
+    }
+
+    // 3. 도보 모드
+    if (
+      webViewRef.current &&
+      routeData &&
+      routeMode === "walk" &&
+      routeData.features
+    ) {
+      routePoints.forEach((pt, idx) => {
+        console.log(pt.latitude);
+        console.log(pt.longitude);
+      });
+
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "DRAW_WALK_ROUTE",
+          payload: {
+            route: routeData,
+            points: routePoints,
+          },
+        })
+      );
+    }
+  }, [routeData, routeMode]);
 
   // 사용자 위치 변경 시 지도에 위치 업데이트
   useEffect(() => {
@@ -109,15 +184,286 @@ export default function MapWebView({ range }) {
             window.userMarker = null;    // 사용자 위치 마커
             window.userCircle = null;    // 사용자 반경 원
             window.heritageMarkers = []; // 근처 유적지 마커 배열
+            
+            
+            
+            window.carPolyline = null; // 자동차 경로 폴리라인
+            window.carRouteMarkers = []; // 자동차 출발지/목적지/경유지 마커 배열
 
 
-            // 기존 유적지 마커 지우기
+            
+            window.transitPolylines = []; // 대중교통 경로 폴리라인 배열
+            window.transitMarkers = []; // 대중교통 출발지/목적지/경유지 마커 배열
+
+            window.walkPolyline = null; // 도보 경로 폴리라인
+            window.walkRouteMarkers = []; // 도보 출발지/목적지/경유지 마커 배열
+            
+
+            // 자동차 경로 그리기 메서드
+            function drawCarRoute(data) {
+              clearAllRoute();
+
+              const features = data.route.features;
+              const routePoints = data.points;
+              
+              // 1. 경로 폴리라인 그리기
+              const lineCoords = features
+              .filter((f) => f.geometry?.type === "LineString")
+              .flatMap((f) => f.geometry.coordinates.map(([lng, lat]) => new Tmapv2.LatLng(lat, lng)));
+              if (lineCoords.length > 0) {window.carPolyline = new Tmapv2.Polyline({
+                path: lineCoords,
+                strokeColor: "#10A37F",
+                strokeWeight: 10,
+                outline: true,
+                outlineColor:'#ffffff',
+                direction: true,
+                directionColor: "white",
+                directionOpacity: 10000,
+                map: window.map,
+              });
+            
+            // 2. 마커 그리기
+            routePoints.forEach((pt, idx) => {
+              const pos = new Tmapv2.LatLng(pt.latitude, pt.longitude);
+              const label =
+              idx === 0 ? "출발지" :
+              idx === routePoints.length - 1 ? "도착지" :
+              "경유지";
+              
+              const marker = new Tmapv2.Marker({
+                position: pos,
+                label: label,
+                labelSize: "30",
+                icon: "https://www.svgrepo.com/show/376955/map-marker.svg",
+                iconSize: new Tmapv2.Size(70, 70),
+                map: window.map,  
+              });
+              
+              window.carRouteMarkers.push(marker);
+            });
+
+            // 3. 지도의 중심을 경로 가운데로 이동시키고 줌 아웃
+              const start = routePoints[0];
+              const end = routePoints[routePoints.length - 1];
+
+              if (start && end) {
+                const midLat = (start.latitude + end.latitude) / 2 - 0.01;
+                const midLng = (start.longitude + end.longitude) / 2;
+                const midPoint = new Tmapv2.LatLng(midLat, midLng);
+                window.map.setCenter(midPoint);
+                window.map.setZoom(14);
+              }
+            }
+          }
+            
+
+            // 기존 자동차 경로 지우기 메서드
+            function clearCarRoute() {
+              if (window.carPolyline) {
+                window.carPolyline.setMap(null);
+                window.carPolyline = null;
+              }
+              window.carRouteMarkers.forEach((m) => m.setMap(null));
+              window.carRouteMarkers = [];
+            }
+            
+
+            function drawTransitRoute(itineraries) {
+              clearAllRoute();
+              
+               if (!itineraries || itineraries.length === 0) return;
+               const itinerary = itineraries[1];
+               const legs = itinerary.legs;
+
+               legs.forEach((leg) => {
+                
+                
+                const line = leg.passShape?.linestring;
+
+                // 🚶‍♀️ WALK 단계의 steps가 있다면, 따로도 선을 그림
+                if (leg.mode === "WALK" && leg.steps?.length > 0) {
+                  leg.steps.forEach((step) => {
+                    if (step.linestring) {
+                      const coords = step.linestring.split(" ").map((pair) => {
+                        const [lng, lat] = pair.split(",").map(Number);
+                        return new Tmapv2.LatLng(lat, lng);
+                      });
+                      
+                      const polyline = new Tmapv2.Polyline({
+                        path: coords,
+
+                        strokeColor: "#10A37F", // 도보 색 고정
+                        strokeStyle: "dot",
+                        strokeWeight: 10,
+
+                        outline: true,
+                        outlineColor:'#ffffff',
+
+                        direction: leg.mode === "WALK" ? false : true,
+                        directionColor: "white",
+
+                        map: window.map,
+                      });
+                      window.transitPolylines.push(polyline);
+                    }
+                  });
+                }
+
+
+                if (line) {
+                  const coords = line.split(" ").map((pair) => {
+                    const [lng, lat] = pair.split(",").map(Number);
+                    return new Tmapv2.LatLng(lat, lng);
+                  });
+                  
+                  const polyline = new Tmapv2.Polyline({
+                    path: coords,
+
+                    strokeColor: leg.mode === "SUBWAY" ? "#0033cc" :
+                     leg.mode === "BUS" ? "#2E8B57" :
+                     "#10A37F",
+                    strokeStyle: leg.mode === "WALK" ? "dot" : "solid",
+                    strokeWeight: 10,
+
+                    outline: true,
+                    outlineColor:'#ffffff',
+                    
+                    direction: leg.mode === "WALK" ? false : true,
+                    directionColor: "white",
+
+                    map: window.map,
+                  });
+                  window.transitPolylines.push(polyline);
+                }
+              });
+              
+              
+              // 2. 마커 그리기
+              const start = legs[0].start;
+              const end = legs[legs.length - 1].end;
+              
+              const markerStart = new Tmapv2.Marker({
+                position: new Tmapv2.LatLng(start.lat, start.lon),
+                label: "출발지",
+                labelSize: "30",
+                icon: "https://www.svgrepo.com/show/376955/map-marker.svg",
+                iconSize: new Tmapv2.Size(70, 70),
+                map: window.map,
+              });
+              
+              const markerEnd = new Tmapv2.Marker({
+                position: new Tmapv2.LatLng(end.lat, end.lon),
+                label: "도착지",
+                labelSize: "30",
+                icon: "https://www.svgrepo.com/show/376955/map-marker.svg",
+                iconSize: new Tmapv2.Size(70, 70),
+                map: window.map,
+              });
+
+              window.transitMarkers.push(markerStart, markerEnd);
+              
+              const midLat = (start.lat + end.lat) / 2 - 0.01;
+              const midLng = (start.lon + end.lon) / 2;
+              const midPoint = new Tmapv2.LatLng(midLat, midLng);
+              window.map.setCenter(midPoint);
+              window.map.setZoom(14);
+              
+            }
+
+
+
+            // 기존 대중교통 경로 지우기 메서드
+            function clearTransitRoute() {
+              window.transitPolylines.forEach((line) => line.setMap(null));
+              window.transitPolylines = [];
+
+              window.transitMarkers.forEach((marker) => marker.setMap(null));
+              window.transitMarkers = [];
+            }
+
+            // 도보 경로 그리기 메서드
+            function drawWalkRoute(data) {
+              clearAllRoute();
+              const features = data.route.features;
+              const routePoints = data.points;
+              
+              // 1. 경로 폴리라인 그리기
+              const lineCoords = features
+              .filter((f) => f.geometry?.type === "LineString")
+              .flatMap((f) => f.geometry.coordinates.map(([lng, lat]) => new Tmapv2.LatLng(lat, lng)));
+              if (lineCoords.length > 0) {window.walkPolyline = new Tmapv2.Polyline({
+                path: lineCoords,
+                strokeColor: "#10A37F",
+                strokeWeight: 10,
+                outline: true,
+                outlineColor:'#ffffff',
+                direction: true,
+                directionColor: "white",
+                directionOpacity: 10000,
+                map: window.map,
+              });
+            
+            // 2. 마커 그리기
+            routePoints.forEach((pt, idx) => {
+              const pos = new Tmapv2.LatLng(pt.latitude, pt.longitude);
+              const label =
+              idx === 0 ? "출발지" :
+              idx === routePoints.length - 1 ? "도착지" :
+              "경유지";
+              
+              const marker = new Tmapv2.Marker({
+                position: pos,
+                label: label,
+                labelSize: "30",
+                icon: "https://www.svgrepo.com/show/376955/map-marker.svg",
+                iconSize: new Tmapv2.Size(70, 70),
+                map: window.map,  
+              });
+              
+              window.walkRouteMarkers.push(marker);
+            });
+
+            // 3. 지도의 중심을 경로 가운데로 이동시키고 줌 아웃
+              const start = routePoints[0];
+              const end = routePoints[routePoints.length - 1];
+
+              if (start && end) {
+                const midLat = (start.latitude + end.latitude) / 2 - 0.01;
+                const midLng = (start.longitude + end.longitude) / 2;
+                const midPoint = new Tmapv2.LatLng(midLat, midLng);
+                window.map.setCenter(midPoint);
+                window.map.setZoom(14);
+              }
+            }
+          }
+
+          
+          // 기존 도보 경로 지우기 메서드
+            function clearWalkRoute() {
+              if (window.walkPolyline) {
+                window.walkPolyline.setMap(null);
+                window.walkPolyline = null;
+              }
+              window.walkRouteMarkers.forEach((m) => m.setMap(null));
+              window.walkRouteMarkers = [];
+            }
+
+            // 기존 경로 모두 지우기 메서드
+            function clearAllRoute(){
+              clearCarRoute();
+              clearTransitRoute();
+              clearWalkRoute();
+            }
+
+
+
+            // 기존 유적지 마커 지우기 메서드
             function clearHeritageMarkers() {
               window.heritageMarkers.forEach((marker) => marker.setMap(null));
               window.heritageMarkers = [];
             }
 
-            // 유적지 마커 렌더링
+            // 유적지 마커 렌더링 메서드
             function renderHeritageMarkers(heritages) {
               
               // 기존 마커 지우기
@@ -246,6 +592,18 @@ export default function MapWebView({ range }) {
                   renderHeritageMarkers(data.payload);
                 }
 
+                 if (data.type === "DRAW_CAR_ROUTE") {
+                  drawCarRoute(data.payload);
+                }
+                if (data.type === "DRAW_TRANSIT_ROUTE") {
+  drawTransitRoute(data.payload.itineraries);
+}
+                if (data.type === "DRAW_WALK_ROUTE") {
+                drawWalkRoute(data.payload);
+                }
+               if (data.type === "CLEAR_ROUTE") {
+                clearAllRoute();
+              }
               } catch (e) {
                 console.error("메시지 처리 오류:", e);
               }
@@ -270,7 +628,18 @@ export default function MapWebView({ range }) {
                 if (data.type === "NEARBY_HERITAGES") {
                   renderHeritageMarkers(data.payload);
                 }
-
+                 if (data.type === "DRAW_CAR_ROUTE") {
+                  drawCarRoute(data.payload);
+                }
+                if (data.type === "DRAW_TRANSIT_ROUTE") {
+  drawTransitRoute(data.payload.itineraries);
+}
+                if (data.type === "DRAW_WALK_ROUTE") {
+                drawWalkRoute(data.payload);
+                }
+                if (data.type === "CLEAR_ROUTE") {
+                clearAllRoute();
+              }
               } catch (e) {
                 console.error("메시지 처리 오류:", e);
               }

@@ -14,31 +14,30 @@ import { useRoute } from "../../contexts/RouteContext";
 
 export default function SearchBar() {
   const navigation = useNavigation();
-  const { destination, setDestination } = useRoute(); // 목적지 정보
+  const { routePoints, clearRoute } = useRoute();
+
+  const handleExit = () => {
+    Alert.alert("", "길찾기를 종료하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      { text: "확인", onPress: clearRoute },
+    ]);
+  };
+
+  const isRouting = routePoints.length >= 2;
 
   return (
     <View style={styles.header}>
       <TouchableOpacity
-        style={[styles.fakeInputWrapper, destination && styles.expandedWrapper]}
+        style={[styles.fakeInputWrapper, isRouting && styles.expandedWrapper]}
         onPress={() => {
-          if (!destination) navigation.navigate("Search");
+          if (!isRouting) navigation.navigate("Search");
         }}
         activeOpacity={0.8}
       >
-        {destination ? (
+        {isRouting ? (
           <View style={styles.destinationContainer}>
             <View style={styles.row}>
-              <TouchableOpacity
-                onPress={() =>
-                  Alert.alert("", "길찾기를 종료하시겠습니까?", [
-                    { text: "취소", style: "cancel" },
-                    {
-                      text: "확인",
-                      onPress: () => setDestination(null),
-                    },
-                  ])
-                }
-              >
+              <TouchableOpacity onPress={handleExit}>
                 <Ionicons
                   name="chevron-back"
                   size={20}
@@ -47,9 +46,18 @@ export default function SearchBar() {
                 />
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
-                <Text style={styles.locationText}>내 위치</Text>
-                <View style={styles.divider} />
-                <Text style={styles.destinationText}>{destination.name}</Text>
+                {routePoints.map((point, idx) => (
+                  <React.Fragment key={idx}>
+                    <Text style={styles.locationText}>
+                      {idx === 0
+                        ? "내 위치"
+                        : point.name || point.location?.name || "알 수 없음"}
+                    </Text>
+                    {idx < routePoints.length - 1 && (
+                      <View style={styles.divider} />
+                    )}
+                  </React.Fragment>
+                ))}
               </View>
             </View>
           </View>
@@ -83,20 +91,16 @@ const styles = StyleSheet.create({
   },
   fakeInputWrapper: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start", // 상단 정렬
     backgroundColor: "white",
     borderRadius: 16,
     paddingHorizontal: 18,
-    height: 50,
+    paddingVertical: 12, // 상하 여백 추가
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
     elevation: 8,
-  },
-
-  expandedWrapper: {
-    height: 90, // destination 있을 때 커지는 높이
   },
   searchIcon: {
     marginRight: 8,
@@ -108,26 +112,27 @@ const styles = StyleSheet.create({
   },
   destinationContainer: {
     flex: 1,
+    minHeight: 50, // 최소 높이
   },
   row: {
     flexDirection: "row",
-    alignItems: "center", // 아이콘 + 텍스트 수직 가운데 정렬
+    alignItems: "center",
   },
   icon: {
     marginRight: 10,
-    alignSelf: "center", // 아이콘을 카드 중앙에
+    alignSelf: "center",
   },
   locationText: {
     fontSize: 15,
     color: "#333",
     fontWeight: "500",
-    marginBottom: 2,
     marginLeft: 5,
   },
   divider: {
     height: 1,
     backgroundColor: "#ddd",
-    marginVertical: 10,
+    marginVertical: 8,
+    marginLeft: 5,
   },
   destinationText: {
     fontSize: 15,

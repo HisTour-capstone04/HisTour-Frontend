@@ -14,7 +14,7 @@ import ChatbotButton from "../../../components/ChatbotButton";
 import { useHeritages } from "../../../contexts/HeritageContext";
 import { useRoute } from "../../../contexts/RouteContext";
 import { useNavigation } from "@react-navigation/native";
-import { useVia } from "../../../contexts/ViaContext";
+import { useVia } from "../../../contexts/ViaContext.js";
 
 export default function NearbyPanel() {
   const { heritages, getDistance, isLoading } = useHeritages();
@@ -116,13 +116,16 @@ export default function NearbyPanel() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.iconButton}
-                  onPress={() => {
+                  onPress={async () => {
+                    const added = await addStopover(heritage);
+
                     Toast.show({
-                      type: "success",
-                      text1: "경유지에 추가되었습니다",
+                      type: added ? "success" : "info",
+                      text1: added
+                        ? "경유지에 추가되었습니다"
+                        : "이미 경유지 목록에 있습니다",
                       position: "bottom",
                     });
-                    addStopover(heritage);
                   }}
                 >
                   <Ionicons name="add-circle-outline" size={24} color="#444" />

@@ -27,7 +27,7 @@ const MAX_RECENT_KEYWORDS = 15; // 저장 가능한 최근 검색어 최대 개�
 export default function SearchScreen() {
   const { userLocation } = useUserLocation();
   const navigation = useNavigation();
-  const { setDestination, setRouteData } = useRoute();
+  const { setDestination } = useRoute();
 
   const [input, setInput] = useState("");
   const debouncedInput = useDebouncedValue(input, 500); // 500ms 후 자동 반영
@@ -251,15 +251,12 @@ export default function SearchScreen() {
               onPress={async () => {
                 try {
                   saveKeyword(item.name); // 최근 검색어
-                  setDestination(item); // 목적지 저장
-
+                  setDestination(item);
                   setTimeout(() => {
                     navigation.navigate("Home"); // 50ms 뒤에 이동
                   }, 50);
 
-                  console.log("선택한 아이템:", item);
-                  console.log("사용자 위치:", userLocation);
-                  // 현재 위치 기반 경로 계산
+                  /* 현재 위치 기반 경로 계산
                   if (userLocation) {
                     const routeRes = await fetchTransitRoute({
                       startX: userLocation.longitude,
@@ -271,6 +268,7 @@ export default function SearchScreen() {
                     // TODO: 경로 상태 저장 또는 WebView로 전달
                     console.log("자동차/버스/도보 경로 결과:", routeRes);
                   }
+                  */
                 } catch (e) {
                   console.error("경로 계산 중 오류:", e);
                   navigation.navigate("Home");

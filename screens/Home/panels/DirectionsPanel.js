@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   Text,
@@ -15,27 +16,34 @@ import { useUserLocation } from "../../../contexts/UserLocationContext";
 import { TMAP_APP_KEY } from "../../../config/apiKeys";
 import { theme } from "../../../theme/colors";
 
-import { useVia } from "../../../contexts/ViaContext";
+import { useRouteMode } from "../../../contexts/RouteModeContext.js";
+import { useVia } from "../../../contexts/ViaContext.js";
 import { useRoute } from "../../../contexts/RouteContext";
 
 export default function DirectionsPanel() {
-  const { destination, routeData, setRouteData } = useRoute();
-  const [selectedMode, setSelectedMode] = useState("transit"); // 기본은 대중교통
+  const {
+    routeData,
+    setRouteData,
+    routePoints,
+    setRoutePoints,
+    reorderPoints,
+    removePoint,
+    addVia,
+  } = useRoute();
+
+  const { stopovers, removeStopover } = useVia();
+  const { routeMode, setRouteMode } = useRouteMode();
+
   const [selectedIndex, setSelectedIndex] = useState(null);
 
-  const [walkLoading, setWalkLoading] = useState(false);
   const [carLoading, setCarLoading] = useState(false);
+  const [transitLoading, setTransitLoading] = useState(false);
+  const [walkLoading, setWalkLoading] = useState(false);
 
   const [carTotalTime, setCarTotalTime] = useState(null);
   const [walkTotalTime, setWalkTotalTime] = useState(null);
 
   const { userLocation } = useUserLocation();
-  const { stopovers, removeStopover } = useVia();
-
-  const prevFetchRef = useRef({
-    car: { lat: null, lng: null },
-    walk: { lat: null, lng: null },
-  });
 
   const modeLabels = {
     car: "자동차",
@@ -51,65 +59,113 @@ export default function DirectionsPanel() {
     via: "add",
   };
 
+  // 출발지, 목적지, 경유지들
+  const origin = routePoints[0];
+  const destination = routePoints[routePoints.length - 1];
+  const viaList = routePoints.slice(1, routePoints.length - 1);
+
+  const passListStr = viaList
+    .map((p) => `${p.longitude},${p.latitude}`)
+    .join("_");
+
   // 소요시간 포맷팅
   const formatDuration = (totalMinutes) => {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-
-    if (hours > 0) {
-      return `${hours}시간 ${minutes}분`;
-    } else if (totalMinutes <= 0) {
-      return "1분 미만";
-    }
+    if (hours > 0) return `${hours}시간 ${minutes}분`;
+    if (totalMinutes <= 0) return "1분 미만";
     return `${minutes}분`;
   };
 
   // 거리 포맷팅
   const formatDistance = (meters) => {
-    if (meters >= 1000) {
-      return `${(meters / 1000).toFixed(1)}km`;
-    }
+    if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
     return `${Number(meters).toLocaleString()}m`;
   };
 
-  // 메서드 기반 계산 함수 추가
+  // 자동차 총 소요 시간 & 거리 계산 메서드
   const getCarTotalTime = () =>
-    routeData?.features?.[0]?.properties?.totalTime || 0;
+    typeof routeData?.features?.[0]?.properties?.totalTime === "number"
+      ? routeData.features[0].properties.totalTime
+      : 0;
 
   const getCarTotalDistance = () =>
-    routeData?.features?.[0]?.properties?.totalDistance || 0;
+    typeof routeData?.features?.[0]?.properties?.totalDistance === "number"
+      ? routeData.features[0].properties.totalDistance
+      : 0;
 
+  // 도보 총 소요 시간 & 거리 계산 메서드
   const getWalkTotalTime = () =>
-    routeData?.features?.reduce(
-      (acc, cur) => acc + (cur.properties?.time || 0),
-      0
-    ) || 0;
+    routeData?.features?.reduce((acc, cur) => {
+      if (
+        cur.geometry?.type === "LineString" &&
+        typeof cur.properties?.time === "number"
+      ) {
+        return acc + cur.properties.time;
+      }
+      return acc;
+    }, 0) || 0;
 
   const getWalkTotalDistance = () =>
-    routeData?.features?.reduce(
-      (acc, cur) =>
-        acc +
-        (cur.geometry?.type === "LineString"
-          ? cur.properties?.distance || 0
-          : 0),
-      0
-    ) || 0;
+    routeData?.features?.reduce((acc, cur) => {
+      if (
+        cur.geometry?.type === "LineString" &&
+        typeof cur.properties?.distance === "number"
+      ) {
+        return acc + cur.properties.distance;
+      }
+      return acc;
+    }, 0) || 0;
 
   // 대중 교통
   const itineraries = routeData?.metaData?.plan?.itineraries ?? [];
+
+  // 대중교통 도보 소요 시간
   const getWalkingTime = (legs) => {
     return legs
       .filter((leg) => leg.mode === "WALK")
       .reduce((acc, leg) => acc + leg.sectionTime, 0);
   };
 
-  const fetchWalkRoute = async () => {
+  const fetchCarRoute = async () => {
     if (!userLocation || !destination) return;
 
-    prevFetchRef.current.walk = {
-      lat: destination.latitude,
-      lng: destination.longitude,
-    };
+    setCarLoading(true);
+
+    try {
+      const formBody = new URLSearchParams({
+        startX: String(userLocation.longitude),
+        startY: String(userLocation.latitude),
+        endX: String(destination.longitude),
+        endY: String(destination.latitude),
+        passList: passListStr,
+        startName: "출발지",
+        endName: "도착지",
+        reqCoordType: "WGS84GEO",
+        resCoordType: "WGS84GEO",
+        searchOption: "0",
+      }).toString();
+
+      const response = await fetch("https://apis.openapi.sk.com/tmap/routes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          appKey: TMAP_APP_KEY,
+        },
+        body: formBody,
+      });
+
+      const data = await response.json();
+      setRouteData(data);
+    } catch (e) {
+      console.error("자동차 경로 요청 실패:", e);
+    } finally {
+      setCarLoading(false);
+    }
+  };
+
+  const fetchWalkRoute = async () => {
+    if (!userLocation || !destination) return;
 
     setWalkLoading(true);
 
@@ -119,6 +175,7 @@ export default function DirectionsPanel() {
         startY: String(userLocation.latitude),
         endX: String(destination.longitude),
         endY: String(destination.latitude),
+        passList: passListStr,
         startName: "출발지",
         endName: "도착지",
         reqCoordType: "WGS84GEO",
@@ -147,64 +204,61 @@ export default function DirectionsPanel() {
     }
   };
 
-  const fetchCarRoute = async () => {
+  const fetchTransitRoute = async () => {
     if (!userLocation || !destination) return;
 
-    prevFetchRef.current.car = {
-      lat: destination.latitude,
-      lng: destination.longitude,
-    };
-
-    setCarLoading(true);
+    setTransitLoading(true);
 
     try {
-      const formBody = new URLSearchParams({
+      const requestBody = {
         startX: String(userLocation.longitude),
         startY: String(userLocation.latitude),
         endX: String(destination.longitude),
         endY: String(destination.latitude),
-        startName: "출발지",
-        endName: "도착지",
-        reqCoordType: "WGS84GEO",
-        resCoordType: "WGS84GEO",
-        searchOption: "0",
-      }).toString();
+        count: 3,
+        lang: 0,
+        format: "json",
+      };
 
-      const response = await fetch("https://apis.openapi.sk.com/tmap/routes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          appKey: TMAP_APP_KEY,
-        },
-        body: formBody,
-      });
+      const response = await fetch(
+        "https://apis.openapi.sk.com/transit/routes",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            appKey: TMAP_APP_KEY,
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
 
       const data = await response.json();
+      console.log(data);
       setRouteData(data);
     } catch (e) {
-      console.error("자동차 경로 요청 실패:", e);
+      console.error("대중교통 경로 요청 실패:", e);
     } finally {
-      setCarLoading(false);
+      setTransitLoading(false);
     }
   };
 
   useEffect(() => {
-    if (selectedMode === "walk" && destination && userLocation) {
-      fetchWalkRoute();
-    }
-    if (selectedMode === "car" && destination && userLocation) {
+    if (routeMode === "car" && origin && destination) {
       fetchCarRoute();
     }
-  }, [selectedMode]);
+    if (routeMode === "transit" && origin && destination) {
+      fetchTransitRoute();
+    }
+    if (routeMode === "walk" && origin && destination) {
+      fetchWalkRoute();
+    }
+  }, [routeMode, routePoints]);
 
   useEffect(() => {
-    if (
-      selectedMode === "car" &&
-      routeData?.features?.[0]?.properties?.totalTime
-    ) {
+    if (routeMode === "car" && routeData?.features?.[0]) {
       setCarTotalTime(routeData.features[0].properties.totalTime);
       setWalkTotalTime(null); // 혹시 이전 값이 남아있을 수 있으니 초기화
-    } else if (selectedMode === "walk" && routeData?.features?.length > 0) {
+    } else if (routeMode === "walk" && routeData?.features?.length > 0) {
       const total = routeData.features.reduce(
         (acc, cur) => acc + (cur.properties?.time || 0),
         0
@@ -215,7 +269,7 @@ export default function DirectionsPanel() {
       setCarTotalTime(null);
       setWalkTotalTime(null);
     }
-  }, [routeData, selectedMode]);
+  }, [routeData, routeMode]);
 
   useEffect(() => {
     if (!destination) {
@@ -227,8 +281,8 @@ export default function DirectionsPanel() {
   return (
     <View style={{ flex: 1 }}>
       {/* 모드 텍스트 */}
-      <Text style={styles.modeTitle}>{modeLabels[selectedMode]}</Text>
-      {selectedMode === "car" && destination && routeData && (
+      <Text style={styles.modeTitle}>{modeLabels[routeMode]}</Text>
+      {routeMode === "car" && destination && routeData && (
         <View style={styles.summaryRow}>
           <Text style={styles.summaryTime}>
             {formatDuration(Math.round(getCarTotalTime() / 60))}
@@ -239,7 +293,7 @@ export default function DirectionsPanel() {
         </View>
       )}
 
-      {selectedMode === "walk" && destination && routeData && (
+      {routeMode === "walk" && destination && routeData && (
         <View style={styles.summaryRow}>
           <Text style={styles.summaryTime}>
             {formatDuration(Math.round(getWalkTotalTime() / 60))}
@@ -251,22 +305,22 @@ export default function DirectionsPanel() {
       )}
       {/* 모드 선택 */}
       <View style={styles.modeRow}>
-        {Object.keys(modeLabels).map((mode) => (
+        {Object.keys(modeLabels).map((modeKey) => (
           <TouchableOpacity
-            key={mode}
+            key={modeKey}
             onPress={() => {
-              setSelectedMode(mode);
+              setRouteMode(modeKey);
               setSelectedIndex(null);
             }}
             style={[
               styles.iconButton,
-              selectedMode === mode && styles.selectedButton,
+              routeMode === modeKey && styles.selectedButton,
             ]}
           >
             <Ionicons
-              name={modeIcons[mode]}
+              name={modeIcons[modeKey]}
               size={24}
-              color={selectedMode === mode ? theme.main_green : theme.gray}
+              color={routeMode === modeKey ? theme.main_green : theme.gray}
             />
           </TouchableOpacity>
         ))}
@@ -276,11 +330,17 @@ export default function DirectionsPanel() {
       <View style={styles.divider} />
 
       {/* 대중교통 모드 */}
-      {selectedMode === "transit" ? (
+      {routeMode === "transit" ? (
         destination == null ? (
           <Text style={styles.emptyMessage}>
             가고 싶은 유적지를 검색해 보세요.
           </Text>
+        ) : transitLoading ? (
+          <ActivityIndicator
+            size="large"
+            color={theme.main_green}
+            style={{ marginVertical: 20 }}
+          />
         ) : itineraries.length > 0 ? (
           selectedIndex === null ? (
             // 경로 목록
@@ -356,7 +416,7 @@ export default function DirectionsPanel() {
           <Text style={styles.routeInfo}>경로 정보가 없습니다.</Text>
         )
       ) : // 도보
-      selectedMode === "walk" ? (
+      routeMode === "walk" ? (
         destination == null ? (
           <Text style={styles.emptyMessage}>
             가고 싶은 유적지를 검색해 보세요.
@@ -383,7 +443,7 @@ export default function DirectionsPanel() {
         ) : (
           <Text style={styles.routeInfo}>도보 경로 정보가 없습니다.</Text>
         ) // 자동차
-      ) : selectedMode === "car" ? (
+      ) : routeMode === "car" ? (
         destination == null ? (
           <Text style={styles.emptyMessage}>
             가고 싶은 유적지를 검색해 보세요.
@@ -410,7 +470,7 @@ export default function DirectionsPanel() {
         ) : (
           <Text style={styles.routeInfo}>자동차 경로 정보가 없습니다.</Text>
         )
-      ) : selectedMode === "via" ? (
+      ) : routeMode === "via" ? (
         stopovers.length === 0 ? (
           <Text style={styles.emptyMessage}>추가한 경유지가 없습니다.</Text>
         ) : (
@@ -421,28 +481,25 @@ export default function DirectionsPanel() {
             {stopovers.map((heritage) => (
               <View key={heritage.id} style={styles.card}>
                 <View style={styles.header}>
-                  <Text style={styles.name}>{heritage.name}</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      Alert.alert("", "경유지에서 삭제하시겠습니까?", [
-                        { text: "취소", style: "cancel" },
-                        {
-                          text: "삭제",
-                          style: "destructive",
-                          onPress: () => removeStopover(heritage.id),
-                        },
-                      ]);
-                    }}
-                  >
+                  <Text style={styles.name}>
+                    {heritage.name || heritage.location?.name || "이름 없음"}
+                  </Text>
+                  <TouchableOpacity onPress={() => removeStopover(heritage.id)}>
                     <Ionicons name="close" size={18} color="#999" />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.address}>{heritage.detailAddress}</Text>
+                <Text style={styles.address}>
+                  {heritage.detailAddress || heritage.location?.detailAddress}
+                </Text>
                 <Text style={styles.description}>
-                  {heritage.description?.split("\n")[0]}
+                  {heritage.description?.split("\n")[0] ||
+                    heritage.location?.description?.split("\n")[0] ||
+                    ""}
                 </Text>
                 <TouchableOpacity
-                  onPress={() => console.log("경유지 추가됨")}
+                  onPress={() => {
+                    addVia(heritage); // 진짜 경유지로 추가
+                  }}
                   style={styles.stopoverAddButton}
                 >
                   <Text style={styles.stopoverAddText}>경유지로 추가</Text>

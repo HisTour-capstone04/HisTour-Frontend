@@ -7,8 +7,9 @@ import { AuthProvider } from "./contexts/AuthContext";
 import MainNavigator from "./navigation/MainNavigator";
 import { UserLocationProvider } from "./contexts/UserLocationContext";
 import { RouteProvider } from "./contexts/RouteContext";
-import { ViaProvider } from "./contexts/ViaContext";
-import "./contexts/UserLocationTask";
+import { ViaProvider } from "./contexts/ViaContext.js";
+import { RouteModeProvider } from "./contexts/RouteModeContext.js";
+import "./tasks/UserLocationTask";
 
 const Stack = createNativeStackNavigator();
 
@@ -16,13 +17,15 @@ export default function App() {
   return (
     <>
       <UserLocationProvider>
-        <AuthProvider>
-          <RouteProvider>
-            <ViaProvider>
-              <MainNavigator />
-            </ViaProvider>
-          </RouteProvider>
-        </AuthProvider>
+        <RouteModeProvider>
+          <AuthProvider>
+            <RouteProvider>
+              <ViaProvider>
+                <MainNavigator />
+              </ViaProvider>
+            </RouteProvider>
+          </AuthProvider>
+        </RouteModeProvider>
       </UserLocationProvider>
       <Toast />
     </>
