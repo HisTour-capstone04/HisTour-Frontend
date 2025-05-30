@@ -15,10 +15,18 @@ export function RouteProvider({ children }) {
   const startPoint = routePoints[0] || null;
 
   // 목적지 : 배열의 마지막 요소
-  const destination = routePoints[routePoints.length - 1] || null;
+  const destination =
+    routePoints.length >= 2 ? routePoints[routePoints.length - 1] : null;
 
   // 경유지 : 배열 중간 요소들 (첫번째, 마지막 요소 제외하고 잘라내기)
-  const stopovers = routePoints.slice(1, routePoints.length - 1);
+  const nowStopovers = routePoints.slice(1, routePoints.length - 1);
+
+  // 길찾기 시점의 사용자 위치 ("내 위치")
+  const getCurrentLocationPoint = () => ({
+    id: "my-location",
+    name: "내 위치",
+    ...userLocation,
+  });
 
   // 출발지 설정 (해당 유적지를 경로 배열 첫번째 요소로 교체)
   const setStart = (heritage) => {
@@ -49,6 +57,11 @@ export function RouteProvider({ children }) {
       return;
     }
 
+    if (routePoints.length === 1) {
+      setRoutePoints([...routePoints, heritage]);
+      return;
+    }
+
     console.log("목적지 설정: " + heritage.name);
     setRoutePoints((prev) => {
       const withoutDestination = prev.slice(0, prev.length - 1);
@@ -70,6 +83,22 @@ export function RouteProvider({ children }) {
         },
         heritage,
       ]);
+      return;
+    }
+
+    if (routePoints.length === 1) {
+      if (startPoint.id === heritage.id) {
+        Toast.show({
+          type: "error",
+          text1: "이미 출발지입니다.",
+          position: "bottom",
+        });
+        return;
+      }
+      setRoutePoints([startPoint, heritage]);
+      console.log(
+        "경유지 추가 - 목적지가 없어 목적지로 추가합니다 :" + heritage.name
+      );
       return;
     }
 
@@ -124,7 +153,7 @@ export function RouteProvider({ children }) {
         routePoints,
         startPoint,
         destination,
-        stopovers,
+        nowStopovers,
         setRoutePoints,
         setStart,
         setDestination,

@@ -11,10 +11,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../theme/colors";
 import { useNavigation } from "@react-navigation/native";
 import { useRoute } from "../../contexts/RouteContext";
+import DraggableFlatList from "react-native-draggable-flatlist";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function SearchBar() {
   const navigation = useNavigation();
-  const { routePoints, clearRoute } = useRoute();
+  const {
+    routePoints,
+    nowStopovers,
+    clearRoute,
+    reorderPoints,
+    removePoint,
+    startPoint,
+    destination,
+  } = useRoute();
 
   const handleExit = () => {
     Alert.alert("", "길찾기를 종료하시겠습니까?", [
@@ -23,20 +33,21 @@ export default function SearchBar() {
     ]);
   };
 
-  const isRouting = routePoints.length >= 2;
+  const isRouting = routePoints.length >= 1; // 길찾기 중인지
+  const hasDestination = destination != null; // 목적지를 가지고 있는지
+
+  // 목적지가 없을 경우 placeholder 항목 추가
+  const visualRoutePoints = hasDestination
+    ? routePoints
+    : [...routePoints, { id: "placeholder-destination" }];
 
   return (
     <View style={styles.header}>
-      <TouchableOpacity
-        style={[styles.fakeInputWrapper, isRouting && styles.expandedWrapper]}
-        onPress={() => {
-          if (!isRouting) navigation.navigate("Search");
-        }}
-        activeOpacity={0.8}
-      >
-        {isRouting ? (
+      {isRouting ? (
+        <View style={[styles.fakeInputWrapper, styles.expandedWrapper]}>
           <View style={styles.destinationContainer}>
             <View style={styles.row}>
+              {/* 길찾기 종료 버튼 */}
               <TouchableOpacity onPress={handleExit}>
                 <Ionicons
                   name="chevron-back"
@@ -46,39 +57,109 @@ export default function SearchBar() {
                 />
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
-                {routePoints.map((point, idx) => (
-                  <React.Fragment key={idx}>
-                    <Text style={styles.locationText}>
-                      {idx === 0
-                        ? "내 위치"
-                        : point.name || point.location?.name || "알 수 없음"}
-                    </Text>
-                    {idx < routePoints.length - 1 && (
-                      <View style={styles.divider} />
-                    )}
-                  </React.Fragment>
-                ))}
+                <DraggableFlatList
+                  data={visualRoutePoints}
+                  scrollEnabled={false}
+                  onDragEnd={({ data }) => {
+                    // placeholder는 제외하고 순서 저장
+                    const cleaned = data.filter(
+                      (item) => item.id !== "placeholder-destination"
+                    );
+                    reorderPoints(cleaned);
+                  }}
+                  keyExtractor={(item, index) =>
+                    item.id?.toString() ?? index.toString()
+                  }
+                  renderItem={({ item, drag, isActive, index }) => {
+                    const isPlaceholder = item.id === "placeholder-destination";
+
+                    if (isPlaceholder) {
+                      return (
+                        <View style={styles.routeItem}>
+                          <Text style={styles.destinationText}>
+                            목적지를 선택하세요
+                          </Text>
+                        </View>
+                      );
+                    }
+
+                    const isStart = item.id === startPoint?.id;
+                    const isEnd = item.id === destination?.id;
+                    const isStopover = nowStopovers.some(
+                      (p) => p.id === item.id
+                    );
+
+                    return (
+                      <View
+                        style={[
+                          styles.routeItem,
+                          isEnd && { borderBottomWidth: 0 },
+                        ]}
+                      >
+                        <Text style={styles.locationText}>
+                          {item.id === "user"
+                            ? "내 위치"
+                            : item.name || item.location?.name || "알 수 없음"}
+                        </Text>
+
+                        {isStopover && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              const actualIndex = routePoints.findIndex(
+                                (p) => p.id === item.id
+                              );
+                              if (actualIndex !== -1) removePoint(actualIndex);
+                            }}
+                            style={{ marginLeft: 10 }}
+                          >
+                            <Ionicons
+                              name="remove-circle-outline"
+                              size={20}
+                              color="#888"
+                            />
+                          </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                          onLongPress={drag}
+                          disabled={isActive}
+                          style={{ marginLeft: 10 }}
+                        >
+                          <MaterialCommunityIcons
+                            name="drag"
+                            size={22}
+                            color="#888"
+                          />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  }}
+                />
               </View>
             </View>
           </View>
-        ) : (
-          <>
-            <Ionicons
-              name="search"
-              size={18}
-              color="#888"
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.fakeInput}
-              placeholder="검색어를 입력하세요"
-              placeholderTextColor="#888"
-              editable={false}
-              pointerEvents="none"
-            />
-          </>
-        )}
-      </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.fakeInputWrapper}
+          onPress={() => navigation.navigate("Search")}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name="search"
+            size={18}
+            color="#888"
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.fakeInput}
+            placeholder="검색어를 입력하세요"
+            placeholderTextColor="#888"
+            editable={false}
+            pointerEvents="none"
+          />
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -126,6 +207,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#333",
     fontWeight: "500",
+    flex: 1,
     marginLeft: 5,
   },
   divider: {
@@ -140,5 +222,14 @@ const styles = StyleSheet.create({
     color: "#333",
     marginTop: 2,
     marginLeft: 5,
+  },
+  routeItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 10,
+    paddingHorizontal: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
   },
 });

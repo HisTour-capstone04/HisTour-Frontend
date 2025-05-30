@@ -67,11 +67,6 @@ export default function MapWebView({ range }) {
       routeMode === "walk" &&
       routeData.features
     ) {
-      routePoints.forEach((pt, idx) => {
-        console.log(pt.latitude);
-        console.log(pt.longitude);
-      });
-
       webViewRef.current.postMessage(
         JSON.stringify({
           type: "DRAW_WALK_ROUTE",

@@ -29,6 +29,9 @@ export default function AuthScreen() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // 이메일 유효성 검사 메서드
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   // 로그인 처리 메서드
   const handleLogin = async () => {
     console.log("이메일:", email);
@@ -46,7 +49,7 @@ export default function AuthScreen() {
 
     try {
       const response = await fetch(
-        "http://ec2-43-203-173-84.ap-northeast-2.compute.amazonaws.com:8080/api/members/login",
+        "http://192.168.0.15:8080/api/members/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -98,7 +101,17 @@ export default function AuthScreen() {
       return;
     }
 
-    // 비밀번호 재확인
+    // 이메일 주소가 유효하지 않을 경우
+    if (!isValidEmail(email)) {
+      Toast.show({
+        type: "error",
+        text1: "이메일 형식을 확인해주세요.",
+        position: "bottom",
+      });
+      return;
+    }
+
+    // 비밀번호와 재확인 비밀번호가 일치하지 않을 경우
     if (password !== confirmPassword) {
       Toast.show({
         type: "error",
@@ -110,7 +123,7 @@ export default function AuthScreen() {
 
     try {
       const response = await fetch(
-        "http://ec2-43-203-173-84.ap-northeast-2.compute.amazonaws.com:8080/api/members/signup",
+        "http://192.168.0.15:8080/api/members/signup",
         {
           method: "POST",
           headers: {

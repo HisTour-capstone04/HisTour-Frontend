@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useContext } from "react";
 import {
   View,
   Text,
@@ -10,18 +10,21 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
 import { useUserLocation } from "../../../contexts/UserLocationContext";
-import ChatbotButton from "../../../components/ChatbotButton";
 import { useHeritages } from "../../../contexts/HeritageContext";
 import { useRoute } from "../../../contexts/RouteContext";
 import { useNavigation } from "@react-navigation/native";
 import { useVia } from "../../../contexts/ViaContext.js";
+import { useBookmark } from "../../../contexts/BookmarkContext.js";
+import { AuthContext } from "../../../contexts/AuthContext";
+import { theme } from "../../../theme/colors";
 
 export default function NearbyPanel() {
   const { heritages, getDistance, isLoading } = useHeritages();
   const { userLocation } = useUserLocation();
-  const { setDestination } = useRoute();
+  const { setDestination, setRoutePoints } = useRoute();
   const { addStopover } = useVia();
-
+  const { bookmarks, addBookmark, removeBookmark } = useBookmark();
+  const { isLoggedIn } = useContext(AuthContext);
   const navigation = useNavigation();
   const [expandedIds, setExpandedIds] = useState([]);
 
@@ -46,13 +49,25 @@ export default function NearbyPanel() {
 
   return (
     <View style={styles.container}>
-      <Text style={{ marginBottom: 10 }}>
-        발견된 유적지 수: {isLoading ? "로딩 중..." : heritages.length}
-      </Text>
+      <View style={{ padding: 10, marginVertical: 10 }}>
+        {isLoading ? (
+          <Text style={styles.loadingText}>유적지를 불러오는 중...</Text>
+        ) : (
+          <Text style={styles.nearbyText}>
+            <Text>내 근처에 </Text>
+            <Text style={styles.highlightedCount}>{heritages.length}</Text>
+            <Text>개의 유적지가 있어요</Text>
+          </Text>
+        )}
+      </View>
       <ScrollView>
         {sortedHeritages.map((heritage) => {
           const isExpanded = expandedIds.includes(heritage.id);
           const firstLine = heritage.description?.split("\n")[0] || "";
+
+          const isBookmarked = bookmarks.some(
+            (b) => b.id === heritage.id || b.heritageId === heritage.id
+          );
 
           return (
             <View key={heritage.id} style={styles.card}>
@@ -103,40 +118,99 @@ export default function NearbyPanel() {
                 </ScrollView>
               )}
               <View style={styles.buttonRow}>
-                <TouchableOpacity style={styles.iconButton}>
-                  <Ionicons name="bookmark-outline" size={24} color="#444" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => {
-                    setDestination(heritage);
-                  }}
-                >
-                  <Ionicons name="navigate-outline" size={24} color="#444" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={async () => {
-                    const added = await addStopover(heritage);
+                <View style={styles.leftButtons}>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => {
+                      if (!isLoggedIn) {
+                        Toast.show({
+                          type: "info",
+                          text1: "로그인이 필요합니다",
+                          position: "bottom",
+                        });
+                        navigation.navigate("Auth");
+                        return;
+                      }
+                      isBookmarked
+                        ? removeBookmark(heritage.id)
+                        : addBookmark(heritage.id);
+                    }}
+                  >
+                    <Ionicons
+                      name={isBookmarked ? "bookmark" : "bookmark-outline"}
+                      size={24}
+                      color="#444"
+                    />
+                  </TouchableOpacity>
 
-                    Toast.show({
-                      type: added ? "success" : "info",
-                      text1: added
-                        ? "경유지에 추가되었습니다"
-                        : "이미 경유지 목록에 있습니다",
-                      position: "bottom",
-                    });
-                  }}
-                >
-                  <Ionicons name="add-circle-outline" size={24} color="#444" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton}>
-                  <Ionicons
-                    name="chatbubble-ellipses-outline"
-                    size={24}
-                    color="#444"
-                  />
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={async () => {
+                      const added = await addStopover(heritage);
+                      Toast.show({
+                        type: added ? "success" : "info",
+                        text1: added
+                          ? "경유지에 추가되었습니다"
+                          : "이미 경유지 목록에 있습니다",
+                        position: "bottom",
+                      });
+                    }}
+                  >
+                    <Ionicons
+                      name="add-circle-outline"
+                      size={24}
+                      color="#444"
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.rightButtons}>
+                  <TouchableOpacity
+                    style={styles.greenButton}
+                    onPress={() => {
+                      setRoutePoints((prev) => [
+                        heritage,
+                        ...prev.filter((p) => p.id !== heritage.id),
+                      ]);
+                      Toast.show({
+                        type: "success",
+                        text1: "출발지로 설정되었습니다",
+                        position: "bottom",
+                      });
+                    }}
+                  >
+                    <Text style={styles.buttonText}>출발</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.greenButton}
+                    onPress={() => {
+                      setDestination(heritage);
+                      Toast.show({
+                        type: "success",
+                        text1: "목적지로 설정되었습니다",
+                        position: "bottom",
+                      });
+                    }}
+                  >
+                    <Text style={styles.buttonText}>도착</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.chatButton}
+                    onPress={() => {
+                      navigation.navigate("Chatbot", {
+                        initialMessage: `${heritage.name}에 대해 간단히 알려줘`,
+                      });
+                    }}
+                  >
+                    <Ionicons
+                      name="chatbubble-ellipses"
+                      size={20}
+                      color="white"
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           );
@@ -148,6 +222,21 @@ export default function NearbyPanel() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: theme.gray,
+  },
+  nearbyText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  highlightedCount: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: theme.main_green,
+  },
   card: {
     backgroundColor: "#f9f9f9",
     borderRadius: 12,
@@ -190,8 +279,38 @@ const styles = StyleSheet.create({
   },
   buttonRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
     gap: 12,
+  },
+  leftButtons: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  rightButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  greenButton: {
+    backgroundColor: theme.main_green,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+  },
+  chatButton: {
+    backgroundColor: theme.main_green,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 13,
+    fontWeight: "bold",
   },
   iconButton: {
     padding: 6,

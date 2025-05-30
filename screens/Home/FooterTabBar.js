@@ -49,8 +49,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingVertical: 10,
-    marginBottom: 3,
+    paddingVertical: 15,
 
     /* iOS 그림자 설정 */
     shadowColor: theme.gray,

@@ -101,6 +101,7 @@ export default function SearchScreen() {
     });
   };
 
+  // 유적지 검색
   const fetchSearchResults = async (keyword) => {
     // fetch 요청 번호 설정
     requestId.current += 1;
@@ -113,7 +114,7 @@ export default function SearchScreen() {
     try {
       console.log(keyword + " 검색 시작");
       const response = await fetch(
-        `http://ec2-43-203-173-84.ap-northeast-2.compute.amazonaws.com:8080/api/heritages?name=${encodeURIComponent(
+        `http://192.168.0.15:8080/api/heritages?name=${encodeURIComponent(
           keyword
         )}`
       );
@@ -125,44 +126,13 @@ export default function SearchScreen() {
         return null;
       }
 
-      return result.data || [];
+      return result.data.heritages || [];
     } catch (error) {
       console.error("검색 오류:", error);
       return [];
     } finally {
       // 로딩 종료
       setIsLoading(false);
-    }
-  };
-
-  const fetchTransitRoute = async ({ startX, startY, endX, endY }) => {
-    try {
-      console.log("경로 탐색 시작:", { startX, startY, endX, endY });
-      const response = await fetch(
-        "https://apis.openapi.sk.com/transit/routes",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            appKey: TMAP_APP_KEY,
-          },
-          body: JSON.stringify({
-            startX,
-            startY,
-            endX,
-            endY,
-            count: 3,
-            lang: 0,
-            format: "json",
-          }),
-        }
-      );
-
-      const result = await response.json();
-      console.log("경로 API 응답:", result);
-      return result;
-    } catch (error) {
-      console.error("경로 fetch 실패:", error);
     }
   };
 
@@ -251,24 +221,7 @@ export default function SearchScreen() {
               onPress={async () => {
                 try {
                   saveKeyword(item.name); // 최근 검색어
-                  setDestination(item);
-                  setTimeout(() => {
-                    navigation.navigate("Home"); // 50ms 뒤에 이동
-                  }, 50);
-
-                  /* 현재 위치 기반 경로 계산
-                  if (userLocation) {
-                    const routeRes = await fetchTransitRoute({
-                      startX: userLocation.longitude,
-                      startY: userLocation.latitude,
-                      endX: item.longitude,
-                      endY: item.latitude,
-                    });
-                    setRouteData(routeRes);
-                    // TODO: 경로 상태 저장 또는 WebView로 전달
-                    console.log("자동차/버스/도보 경로 결과:", routeRes);
-                  }
-                  */
+                  navigation.navigate("Home", { heritage: item });
                 } catch (e) {
                   console.error("경로 계산 중 오류:", e);
                   navigation.navigate("Home");

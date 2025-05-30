@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { useUserLocation } from "./UserLocationContext";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
+import { AuthContext } from "./AuthContext";
 
 const HeritageContext = createContext();
 
@@ -15,6 +16,7 @@ export function HeritageProvider({ children, range }) {
   const [heritages, setHeritages] = useState([]);
   const [lastFetchedLocation, setLastFetchedLocation] = useState(null);
 
+  const { accessToken } = useContext(AuthContext);
   const debouncedRange = useDebouncedValue(range, 300); // debounce 처리 (300ms동안 슬라이더 변화 없을 경우 range 설정)
 
   const requestId = useRef(0); // fetch 요청 번호
@@ -51,20 +53,31 @@ export function HeritageProvider({ children, range }) {
     const myRequestId = requestId.current; // 해당 건의 요청 번호
     currentRequestId.current = myRequestId; // 가장 최신 요청 번호
 
+    // 토큰 없으면 요청 중단
+    if (!accessToken) {
+      console.warn("context: 토큰 없음 → 요청 중단");
+      return;
+    }
+
     // 로딩 시작
     setIsLoading(true);
-
-    // TODO: UX 개선 - range 바꿀 때마다 마커가 초기화되도록. 이전에 나온 마커 안 나오도록
-    // 그리고 기존 마커는 애니메이션 x 새롭게 발견된 마커만 애니메이션 적용 되도록 수정할 것...
-    // setHeritages([]);
 
     // fetch 과정
     try {
       console.log("context: 유적지 fetch 시작");
+
       const response = await fetch(
-        `http://ec2-43-203-173-84.ap-northeast-2.compute.amazonaws.com:8080/api/heritages/nearby?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${debouncedRange}`
+        `http://192.168.0.15:8080/api/heritages/nearby?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${debouncedRange}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
       );
       const result = await response.json();
+      console.log(result);
       const list = result?.data?.heritages ?? [];
 
       // 이 fetch 응답이 가장 최신 요청의 응답이 아니라면 무시

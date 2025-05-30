@@ -22,6 +22,9 @@ import { useRoute } from "../../../contexts/RouteContext";
 
 export default function DirectionsPanel() {
   const {
+    startPoint,
+    destination,
+    nowStopovers,
     routeData,
     setRouteData,
     routePoints,
@@ -59,12 +62,7 @@ export default function DirectionsPanel() {
     via: "add",
   };
 
-  // 출발지, 목적지, 경유지들
-  const origin = routePoints[0];
-  const destination = routePoints[routePoints.length - 1];
-  const viaList = routePoints.slice(1, routePoints.length - 1);
-
-  const passListStr = viaList
+  const passListStr = nowStopovers
     .map((p) => `${p.longitude},${p.latitude}`)
     .join("_");
 
@@ -128,14 +126,19 @@ export default function DirectionsPanel() {
   };
 
   const fetchCarRoute = async () => {
-    if (!userLocation || !destination) return;
+    if (!startPoint || !destination) return;
 
     setCarLoading(true);
 
     try {
+      console.log(
+        "자동차 : routePoints 순서 확인",
+        routePoints.map((p) => p.name)
+      );
+
       const formBody = new URLSearchParams({
-        startX: String(userLocation.longitude),
-        startY: String(userLocation.latitude),
+        startX: String(startPoint.longitude),
+        startY: String(startPoint.latitude),
         endX: String(destination.longitude),
         endY: String(destination.latitude),
         passList: passListStr,
@@ -156,6 +159,12 @@ export default function DirectionsPanel() {
       });
 
       const data = await response.json();
+      console.log("🚗 응답 요약:", {
+        hasFeatures: !!data.features,
+        error: data.error,
+        totalFeatures: data.features?.length,
+        firstFeature: data.features?.[0],
+      });
       setRouteData(data);
     } catch (e) {
       console.error("자동차 경로 요청 실패:", e);
@@ -165,14 +174,18 @@ export default function DirectionsPanel() {
   };
 
   const fetchWalkRoute = async () => {
-    if (!userLocation || !destination) return;
+    if (!startPoint || !destination) return;
 
     setWalkLoading(true);
 
     try {
+      console.log(
+        "도보: routePoints 순서 확인",
+        routePoints.map((p) => p.name)
+      );
       const formBody = new URLSearchParams({
-        startX: String(userLocation.longitude),
-        startY: String(userLocation.latitude),
+        startX: String(startPoint.longitude),
+        startY: String(startPoint.latitude),
         endX: String(destination.longitude),
         endY: String(destination.latitude),
         passList: passListStr,
@@ -205,14 +218,20 @@ export default function DirectionsPanel() {
   };
 
   const fetchTransitRoute = async () => {
-    if (!userLocation || !destination) return;
+    if (!startPoint || !destination) return;
+
+    // 대중교통 api는 경유지 지원 x
+    if (nowStopovers.length > 0) {
+      setRouteData(null);
+      return;
+    }
 
     setTransitLoading(true);
 
     try {
       const requestBody = {
-        startX: String(userLocation.longitude),
-        startY: String(userLocation.latitude),
+        startX: String(startPoint.longitude),
+        startY: String(startPoint.latitude),
         endX: String(destination.longitude),
         endY: String(destination.latitude),
         count: 3,
@@ -233,7 +252,6 @@ export default function DirectionsPanel() {
       );
 
       const data = await response.json();
-      console.log(data);
       setRouteData(data);
     } catch (e) {
       console.error("대중교통 경로 요청 실패:", e);
@@ -243,13 +261,13 @@ export default function DirectionsPanel() {
   };
 
   useEffect(() => {
-    if (routeMode === "car" && origin && destination) {
+    if (routeMode === "car" && startPoint && destination) {
       fetchCarRoute();
     }
-    if (routeMode === "transit" && origin && destination) {
+    if (routeMode === "transit" && startPoint && destination) {
       fetchTransitRoute();
     }
-    if (routeMode === "walk" && origin && destination) {
+    if (routeMode === "walk" && startPoint && destination) {
       fetchWalkRoute();
     }
   }, [routeMode, routePoints]);
@@ -334,6 +352,10 @@ export default function DirectionsPanel() {
         destination == null ? (
           <Text style={styles.emptyMessage}>
             가고 싶은 유적지를 검색해 보세요.
+          </Text>
+        ) : nowStopovers.length > 0 ? (
+          <Text style={styles.emptyMessage}>
+            대중교통은 경유지를 지원하지 않습니다.
           </Text>
         ) : transitLoading ? (
           <ActivityIndicator

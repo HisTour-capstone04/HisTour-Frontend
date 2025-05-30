@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 50, // 중간
-    height: SCREEN_HEIGHT * 0.8,
+    height: SCREEN_HEIGHT * 0.73,
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
