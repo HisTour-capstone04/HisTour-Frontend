@@ -6,7 +6,7 @@ import { TMAP_APP_KEY } from "../config/apiKeys";
 import { useRoute } from "../contexts/RouteContext";
 import { useRouteMode } from "../contexts/RouteModeContext";
 
-export default forwardRef(function MapWebView({ range }, ref) {
+export default forwardRef(function MapWebView({ range, onMessage }, ref) {
   const { userLocation } = useUserLocation();
   const { heritages } = useHeritages();
   const { routeData, routePoints } = useRoute();
@@ -120,27 +120,34 @@ export default forwardRef(function MapWebView({ range }, ref) {
 
   // WebView -> RN 메시지 처리
   const handleMessage = async (event) => {
-    const message = JSON.parse(event.nativeEvent.data);
+    try {
+      const message = JSON.parse(event.nativeEvent.data);
 
-    // 지도 초기화 시 맨 처음 위치 처리
-    if (message.type === "REQUEST_LOCATION") {
-      if (
-        ref.current &&
-        userLocation &&
-        userLocation.latitude &&
-        userLocation.longitude
-      ) {
-        ref.current.postMessage(
-          JSON.stringify({
-            type: "USER_LOCATION_UPDATE",
-            payload: {
-              latitude: userLocation.latitude,
-              longitude: userLocation.longitude,
-              radius: range,
-            },
-          })
-        );
+      // 지도 초기화 시 맨 처음 위치 처리
+      if (message.type === "REQUEST_LOCATION") {
+        if (
+          ref.current &&
+          userLocation &&
+          userLocation.latitude &&
+          userLocation.longitude
+        ) {
+          ref.current.postMessage(
+            JSON.stringify({
+              type: "USER_LOCATION_UPDATE",
+              payload: {
+                latitude: userLocation.latitude,
+                longitude: userLocation.longitude,
+                radius: range,
+              },
+            })
+          );
+        }
       }
+
+      // 부모 컴포넌트의 onMessage 핸들러 호출
+      onMessage && onMessage(event);
+    } catch (error) {
+      console.error("메시지 처리 중 에러:", error);
     }
   };
 
@@ -173,7 +180,8 @@ export default forwardRef(function MapWebView({ range }, ref) {
             window.userMarker = null;    // 사용자 위치 마커
             window.userCircle = null;    // 사용자 반경 원
             window.heritageMarkers = []; // 근처 유적지 마커 배열
-            
+
+            window.focusedMarker = null; // 검색한 유적지 마커
             
             
             window.carPolyline = null; // 자동차 경로 폴리라인
@@ -490,6 +498,41 @@ export default forwardRef(function MapWebView({ range }, ref) {
                   iconSize: new Tmapv2.Size(70, 70),
                   map: window.map,
                 });
+
+                // 마커 클릭/터치 이벤트 핸들러 (WebView -> RN)
+                const handleMarkerInteraction = () => {
+                  const message = {
+                    type: "HERITAGE_MARKER_CLICKED",
+                    payload: {
+                      heritages: group,
+                      latitude: group[0].latitude,
+                      longitude: group[0].longitude,
+                      isFromMarkerClick: true
+                    }
+                  };
+                  
+                  try {
+                    if (window.ReactNativeWebView) {
+                      window.ReactNativeWebView.postMessage(JSON.stringify(message));
+                    } 
+                  } catch (error) {
+                    console.error("메시지 전송 중 에러:", error);
+                  }
+                };
+
+                // 마커의 DOM 엘리먼트 가져오기
+                const markerElement = marker.getElement();
+                if (markerElement) {
+                  // 터치 이벤트 리스너 추가 (WebView -> RN)
+                  markerElement.addEventListener('touchstart', function(e) {
+                    e.preventDefault(); // 기본 터치 동작 방지
+                    handleMarkerInteraction();
+                  });
+                }
+
+                // 기존 클릭 이벤트도 유지
+                marker.addListener("click", handleMarkerInteraction);
+
                 window.heritageMarkers.push(marker);
               });
             }
@@ -559,6 +602,7 @@ export default forwardRef(function MapWebView({ range }, ref) {
               const userPos = new Tmapv2.LatLng(lat, lng);
               window.map.setCenter(userPos);
             }
+            
 
             // 사용자 위치 업뎃 시 지도 업데이트 처리 메서드
             const handlePositionUpdate = (data) => {
@@ -574,34 +618,72 @@ export default forwardRef(function MapWebView({ range }, ref) {
               try {
                 const data = JSON.parse(event.data);
 
+                // 유저 위치 업데이트
                 if (data.type === "USER_LOCATION_UPDATE") {
                   handlePositionUpdate(data);
                 }
 
+                // 사용자 반경 업데이트
                 if (data.type === "UPDATE_RADIUS") {
                   if (window.userCircle) {
                     window.userCircle.setRadius(data.radius);
                   }
                 }
 
+                // 사용자 근처 유적지 마커 표시
                 if (data.type === "NEARBY_HERITAGES") {
                   renderHeritageMarkers(data.payload);
                 }
 
+                // 지도 중심 재설정
                 if (data.type === "RECENTER_TO_COORD") {
                   const { latitude, longitude } = data.payload;
                   updateMapCenter(latitude, longitude);
                 }
 
-                 if (data.type === "DRAW_CAR_ROUTE") {
+                // 특정 유적지 마커 표시
+                if (data.type === "SHOW_SINGLE_MARKER") {
+                  const { id, name, latitude, longitude } = data.payload;
+                  if (window.focusedMarker) {
+                    window.focusedMarker.setMap(null);
+                  }
+                  const pos = new Tmapv2.LatLng(latitude, longitude);
+                  const marker = new Tmapv2.Marker({
+                    position: pos,
+                    label: name,
+                    labelSize: "30",
+                    icon: "https://www.svgrepo.com/show/376955/map-marker.svg",
+                    iconSize: new Tmapv2.Size(70, 70),
+                    animation: Tmapv2.MarkerOptions.ANIMATE_BOUNCE_ONCE,
+                    map: window.map,
+                  });
+                  window.focusedMarker = marker;  
+                }
+                
+                // 특정 유적지 마커 제거
+                if (data.type === "HIDE_SINGLE_MARKER") {
+                  if (window.focusedMarker) {
+                    window.focusedMarker.setMap(null);
+                    window.focusedMarker = null;
+                  }
+                }
+
+                // 자동차 경로 표시
+                if (data.type === "DRAW_CAR_ROUTE") {
                   drawCarRoute(data.payload);
                 }
+
+                // 대중교통 경로 표시
                 if (data.type === "DRAW_TRANSIT_ROUTE") {
                     drawTransitRoute(data.payload.itineraries);
                 }
+
+                // 도보 경로 표시
                 if (data.type === "DRAW_WALK_ROUTE") {
                   drawWalkRoute(data.payload);
                 }
+
+                // 경로 지우기
                if (data.type === "CLEAR_ROUTE") {
                   clearAllRoute();
                 }

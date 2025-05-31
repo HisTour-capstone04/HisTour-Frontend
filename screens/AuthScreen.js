@@ -16,6 +16,7 @@ import Toast from "react-native-toast-message";
 import { AuthContext } from "../contexts/AuthContext";
 import { theme } from "../theme/colors";
 import { useNavigation } from "@react-navigation/native";
+import { IP_ADDRESS } from "../config/apiKeys";
 
 export default function AuthScreen() {
   const { login } = useContext(AuthContext);
@@ -49,7 +50,7 @@ export default function AuthScreen() {
 
     try {
       const response = await fetch(
-        "http://192.168.0.94:8080/api/members/login",
+        "http://" + IP_ADDRESS + ":8080/api/members/login",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -123,7 +124,7 @@ export default function AuthScreen() {
 
     try {
       const response = await fetch(
-        "http://192.168.0.94:8080/api/members/signup",
+        "http://" + IP_ADDRESS + ":8080/api/members/signup",
         {
           method: "POST",
           headers: {

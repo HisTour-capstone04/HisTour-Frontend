@@ -72,6 +72,15 @@ export default function HomeScreen() {
     }
   }, [navRoute.params]);
 
+  // RN -> WebView 메시지 핸들러 (마커 클릭 시 heritageDetailPanel 열림)
+  const handleWebViewMessage = (event) => {
+    const data = JSON.parse(event.nativeEvent.data);
+
+    if (data.type === "HERITAGE_MARKER_CLICKED") {
+      setSelectedHeritage(data.payload);
+    }
+  };
+
   return (
     <HeritageProvider range={range}>
       <SafeAreaView style={styles.container}>
@@ -80,6 +89,7 @@ export default function HomeScreen() {
           ref={webViewRef}
           range={range}
           style={StyleSheet.absoluteFill}
+          onMessage={handleWebViewMessage}
         />
 
         <View style={StyleSheet.absoluteFill}>
@@ -109,6 +119,7 @@ export default function HomeScreen() {
                   heritage={selectedHeritage}
                   onClose={handleClosePanel}
                   webViewRef={webViewRef}
+                  isFromMarkerClick={selectedHeritage.isFromMarkerClick}
                 />
               </View>
             </Animated.View>

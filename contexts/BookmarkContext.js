@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
 import Toast from "react-native-toast-message";
+import { IP_ADDRESS } from "../config/apiKeys";
 
 export const BookmarkContext = createContext();
 
@@ -19,12 +20,15 @@ export const BookmarkProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch("http://192.168.0.94:8080/api/bookmarks", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const response = await fetch(
+        "http://" + IP_ADDRESS + ":8080/api/bookmarks",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
 
       console.log("북마크 조회 response:", response.status);
 
@@ -48,14 +52,17 @@ export const BookmarkProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch("http://192.168.0.94:8080/api/bookmarks", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ heritageId }),
-      });
+      const response = await fetch(
+        "http://" + IP_ADDRESS + ":8080/api/bookmarks",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ heritageId }),
+        }
+      );
 
       const json = await response.json();
       // 북마크 목록 갱신
@@ -98,14 +105,17 @@ export const BookmarkProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch("http://192.168.0.94:8080/api/bookmarks", {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ bookmarkId: bookmark.id }),
-      });
+      const response = await fetch(
+        "http://" + IP_ADDRESS + ":8080/api/bookmarks",
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ bookmarkId: bookmark.id }),
+        }
+      );
 
       const json = await response.json();
       if (response.ok) {

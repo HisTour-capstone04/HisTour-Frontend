@@ -15,6 +15,7 @@ import { theme } from "../theme/colors";
 import { useUserLocation } from "../contexts/UserLocationContext";
 import { AuthContext } from "../contexts/AuthContext";
 import { ActivityIndicator } from "react-native";
+import { IP_ADDRESS } from "../config/apiKeys";
 
 export default function ChatbotScreen() {
   const navigation = useNavigation();
@@ -67,7 +68,7 @@ export default function ChatbotScreen() {
     }
 
     try {
-      const res = await fetch("http://192.168.0.94:8080/api/chatbot", {
+      const res = await fetch("http://" + IP_ADDRESS + ":8080/api/chatbot", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -8,6 +8,7 @@ import React, {
 import { useUserLocation } from "./UserLocationContext";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { AuthContext } from "./AuthContext";
+import { IP_ADDRESS } from "../config/apiKeys";
 
 const HeritageContext = createContext();
 
@@ -67,7 +68,9 @@ export function HeritageProvider({ children, range }) {
       console.log("context: 유적지 fetch 시작");
 
       const response = await fetch(
-        `http://192.168.0.94:8080/api/heritages/nearby?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${debouncedRange}`,
+        "http://" +
+          IP_ADDRESS +
+          `:8080/api/heritages/nearby?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${debouncedRange}`,
         {
           method: "GET",
           headers: {

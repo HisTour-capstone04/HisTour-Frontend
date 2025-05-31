@@ -22,6 +22,7 @@ import Toast from "react-native-toast-message";
 import { useRoute } from "../contexts/RouteContext";
 
 import { TMAP_APP_KEY } from "../config/apiKeys";
+import { IP_ADDRESS } from "../config/apiKeys";
 const MAX_RECENT_KEYWORDS = 15; // 저장 가능한 최근 검색어 최대 개수
 
 export default function SearchScreen() {
@@ -114,9 +115,9 @@ export default function SearchScreen() {
     try {
       console.log(keyword + " 검색 시작");
       const response = await fetch(
-        `http://192.168.0.94:8080/api/heritages?name=${encodeURIComponent(
-          keyword
-        )}`
+        "http://" +
+          IP_ADDRESS +
+          `:8080/api/heritages?name=${encodeURIComponent(keyword)}`
       );
       const result = await response.json();
 
