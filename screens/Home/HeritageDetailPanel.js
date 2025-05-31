@@ -1,5 +1,5 @@
 // HeritageDetailPanel.js
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,7 @@ import { theme } from "../../theme/colors";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../../contexts/AuthContext";
 
-export default function HeritageDetailPanel({ heritage, onClose }) {
+export default function HeritageDetailPanel({ heritage, onClose, webViewRef }) {
   const { setDestination, setRoutePoints } = useRoute();
   const { addStopover } = useVia();
   const { bookmarks, addBookmark, removeBookmark } = useBookmark();
@@ -26,6 +26,22 @@ export default function HeritageDetailPanel({ heritage, onClose }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!heritage) return null;
+
+  useEffect(() => {
+    if (!heritage || !webViewRef?.current) return;
+
+    console.log(heritage.latitude);
+    console.log(heritage.longitude);
+    webViewRef.current.postMessage(
+      JSON.stringify({
+        type: "RECENTER_TO_COORD",
+        payload: {
+          latitude: heritage.latitude,
+          longitude: heritage.longitude,
+        },
+      })
+    );
+  }, [heritage]);
 
   const firstLine = heritage.description?.split("\n")[0] || "";
   const isBookmarked = bookmarks.some(

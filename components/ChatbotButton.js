@@ -19,7 +19,7 @@ export default function ChatbotButton({ onPress }) {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 300, // 슬라이드 패널 올라오기 전에 위치 (조정 가능)
+    bottom: 280, // 슬라이드 패널 올라오기 전에 위치 (조정 가능)
     right: 20,
     backgroundColor: theme.main_green,
     width: 70,

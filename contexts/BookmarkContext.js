@@ -19,7 +19,7 @@ export const BookmarkProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch("http://192.168.0.15:8080/api/bookmarks", {
+      const response = await fetch("http://192.168.0.94:8080/api/bookmarks", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -48,7 +48,7 @@ export const BookmarkProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch("http://192.168.0.15:8080/api/bookmarks", {
+      const response = await fetch("http://192.168.0.94:8080/api/bookmarks", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -98,7 +98,7 @@ export const BookmarkProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch("http://192.168.0.15:8080/api/bookmarks", {
+      const response = await fetch("http://192.168.0.94:8080/api/bookmarks", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

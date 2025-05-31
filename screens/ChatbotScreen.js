@@ -67,7 +67,7 @@ export default function ChatbotScreen() {
     }
 
     try {
-      const res = await fetch("http://192.168.0.15:8080/api/chatbot", {
+      const res = await fetch("http://192.168.0.94:8080/api/chatbot", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

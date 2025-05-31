@@ -12,6 +12,7 @@ import RangeSlider from "./RangeSlider";
 import SlidePanel from "./SlidePanel";
 import FooterTabBar from "./FooterTabBar";
 
+import RecenterMapButton from "../../components/RecenterMapButton";
 import ChatbotButton from "../../components/ChatbotButton";
 import MapWebView from "../../components/MapWebView";
 
@@ -32,6 +33,7 @@ export default function HomeScreen() {
   const [selectedHeritage, setSelectedHeritage] = useState(null); // 검색 결과로 선택된 유적지
   const { destination } = useRoute();
   const navRoute = useNavRoute();
+  const webViewRef = useRef(null);
 
   useEffect(() => {
     if (destination) {
@@ -74,7 +76,11 @@ export default function HomeScreen() {
     <HeritageProvider range={range}>
       <SafeAreaView style={styles.container}>
         {/* 지도 영역 */}
-        <MapWebView range={range} style={StyleSheet.absoluteFill} />
+        <MapWebView
+          ref={webViewRef}
+          range={range}
+          style={StyleSheet.absoluteFill}
+        />
 
         <View style={StyleSheet.absoluteFill}>
           {/* 상단 영역 */}
@@ -87,8 +93,9 @@ export default function HomeScreen() {
           </View>
 
           {/* 하단 영역 */}
-          {/* 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
-          <ChatbotButton onPress={() => console.log("챗봇 버튼 눌림")} />
+          {/* 지도 중심 설정 & 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
+          <RecenterMapButton webViewRef={webViewRef} />
+          <ChatbotButton />
 
           {/* 슬라이드 패널 */}
           <SlidePanel currentTab={currentTab} slideAnim={slideAnim} />
@@ -101,6 +108,7 @@ export default function HomeScreen() {
                 <HeritageDetailPanel
                   heritage={selectedHeritage}
                   onClose={handleClosePanel}
+                  webViewRef={webViewRef}
                 />
               </View>
             </Animated.View>

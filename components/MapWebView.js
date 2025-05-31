@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef } from "react";
 import { WebView } from "react-native-webview";
 import { useUserLocation } from "../contexts/UserLocationContext";
 import { useHeritages } from "../contexts/HeritageContext";
@@ -6,8 +6,7 @@ import { TMAP_APP_KEY } from "../config/apiKeys";
 import { useRoute } from "../contexts/RouteContext";
 import { useRouteMode } from "../contexts/RouteModeContext";
 
-export default function MapWebView({ range }) {
-  const webViewRef = useRef(null);
+export default forwardRef(function MapWebView({ range }, ref) {
   const { userLocation } = useUserLocation();
   const { heritages } = useHeritages();
   const { routeData, routePoints } = useRoute();
@@ -15,8 +14,8 @@ export default function MapWebView({ range }) {
 
   // 길찾기 모드 종료 시 경로 지우기
   useEffect(() => {
-    if (webViewRef.current && (!routeData || !routeData.features?.length)) {
-      webViewRef.current.postMessage(
+    if (ref.current && (!routeData || !routeData.features?.length)) {
+      ref.current.postMessage(
         JSON.stringify({
           type: "CLEAR_ROUTE",
         })
@@ -27,13 +26,8 @@ export default function MapWebView({ range }) {
   // 경로 변경 시 지도에 경로 그리기
   useEffect(() => {
     // 1. 자동차 모드
-    if (
-      webViewRef.current &&
-      routeData &&
-      routeMode === "car" &&
-      routeData.features
-    ) {
-      webViewRef.current.postMessage(
+    if (ref.current && routeData && routeMode === "car" && routeData.features) {
+      ref.current.postMessage(
         JSON.stringify({
           type: "DRAW_CAR_ROUTE",
           payload: {
@@ -46,11 +40,11 @@ export default function MapWebView({ range }) {
 
     // 2. 대중교통 모드
     if (
-      webViewRef.current &&
+      ref.current &&
       routeMode === "transit" &&
       routeData?.metaData?.plan?.itineraries?.length > 0
     ) {
-      webViewRef.current.postMessage(
+      ref.current.postMessage(
         JSON.stringify({
           type: "DRAW_TRANSIT_ROUTE",
           payload: {
@@ -62,12 +56,12 @@ export default function MapWebView({ range }) {
 
     // 3. 도보 모드
     if (
-      webViewRef.current &&
+      ref.current &&
       routeData &&
       routeMode === "walk" &&
       routeData.features
     ) {
-      webViewRef.current.postMessage(
+      ref.current.postMessage(
         JSON.stringify({
           type: "DRAW_WALK_ROUTE",
           payload: {
@@ -82,12 +76,12 @@ export default function MapWebView({ range }) {
   // 사용자 위치 변경 시 지도에 위치 업데이트
   useEffect(() => {
     if (
-      webViewRef.current &&
+      ref.current &&
       userLocation &&
       userLocation.latitude &&
       userLocation.longitude
     ) {
-      webViewRef.current.postMessage(
+      ref.current.postMessage(
         JSON.stringify({
           type: "USER_LOCATION_UPDATE",
           payload: {
@@ -102,8 +96,8 @@ export default function MapWebView({ range }) {
 
   // range 변경 시 사용자 반경 원 업데이트
   useEffect(() => {
-    if (webViewRef.current) {
-      webViewRef.current.postMessage(
+    if (ref.current) {
+      ref.current.postMessage(
         JSON.stringify({
           type: "UPDATE_RADIUS",
           radius: range,
@@ -114,8 +108,8 @@ export default function MapWebView({ range }) {
 
   // 유적지 데이터가 context에서 갱신되면 RN -> WebView 메시지 전달
   useEffect(() => {
-    if (heritages && webViewRef.current) {
-      webViewRef.current.postMessage(
+    if (heritages && ref.current) {
+      ref.current.postMessage(
         JSON.stringify({
           type: "NEARBY_HERITAGES",
           payload: heritages,
@@ -131,12 +125,12 @@ export default function MapWebView({ range }) {
     // 지도 초기화 시 맨 처음 위치 처리
     if (message.type === "REQUEST_LOCATION") {
       if (
-        webViewRef.current &&
+        ref.current &&
         userLocation &&
         userLocation.latitude &&
         userLocation.longitude
       ) {
-        webViewRef.current.postMessage(
+        ref.current.postMessage(
           JSON.stringify({
             type: "USER_LOCATION_UPDATE",
             payload: {
@@ -559,7 +553,14 @@ export default function MapWebView({ range }) {
               
             }
 
-            // 사용자 위치 업뎃되면 지도도 업데이트
+            // 지도 중심 재설정 메서드
+            function updateMapCenter(lat, lng) {
+              if (!window.map || !lat || !lng) return;
+              const userPos = new Tmapv2.LatLng(lat, lng);
+              window.map.setCenter(userPos);
+            }
+
+            // 사용자 위치 업뎃 시 지도 업데이트 처리 메서드
             const handlePositionUpdate = (data) => {
               const { latitude, longitude, radius } = data.payload;
               if (latitude && longitude && radius) {
@@ -568,7 +569,7 @@ export default function MapWebView({ range }) {
             };
 
 
-            // RN -> 웹 메세지 처리 (for iOS)
+            // 이벤트 리스너 : RN -> 웹 메세지 처리 (for iOS)
             window.addEventListener("message", (event) => {
               try {
                 const data = JSON.parse(event.data);
@@ -587,25 +588,30 @@ export default function MapWebView({ range }) {
                   renderHeritageMarkers(data.payload);
                 }
 
+                if (data.type === "RECENTER_TO_COORD") {
+                  const { latitude, longitude } = data.payload;
+                  updateMapCenter(latitude, longitude);
+                }
+
                  if (data.type === "DRAW_CAR_ROUTE") {
                   drawCarRoute(data.payload);
                 }
                 if (data.type === "DRAW_TRANSIT_ROUTE") {
-  drawTransitRoute(data.payload.itineraries);
-}
+                    drawTransitRoute(data.payload.itineraries);
+                }
                 if (data.type === "DRAW_WALK_ROUTE") {
-                drawWalkRoute(data.payload);
+                  drawWalkRoute(data.payload);
                 }
                if (data.type === "CLEAR_ROUTE") {
-                clearAllRoute();
-              }
+                  clearAllRoute();
+                }
               } catch (e) {
                 console.error("메시지 처리 오류:", e);
               }
             } 
             );
 
-            // RN -> 웹 메세지 처리 (for Android)
+            // 이벤트 리스너 : RN -> 웹 메세지 처리 (for Android)
             document.addEventListener("message", (event) => {
               try {
                 const data = JSON.parse(event.data);
@@ -623,12 +629,18 @@ export default function MapWebView({ range }) {
                 if (data.type === "NEARBY_HERITAGES") {
                   renderHeritageMarkers(data.payload);
                 }
+
+                if (data.type === "RECENTER_TO_COORD") {
+                  const { latitude, longitude } = data.payload;
+                  updateMapCenter(latitude, longitude);
+                }
+
                  if (data.type === "DRAW_CAR_ROUTE") {
                   drawCarRoute(data.payload);
                 }
                 if (data.type === "DRAW_TRANSIT_ROUTE") {
-  drawTransitRoute(data.payload.itineraries);
-}
+                  drawTransitRoute(data.payload.itineraries);
+                }
                 if (data.type === "DRAW_WALK_ROUTE") {
                 drawWalkRoute(data.payload);
                 }
@@ -649,11 +661,11 @@ export default function MapWebView({ range }) {
 
   return (
     <WebView
-      ref={webViewRef}
+      ref={ref}
       originWhitelist={["*"]}
       source={{ html: htmlContent }}
       javaScriptEnabled={true}
       onMessage={handleMessage}
     />
   );
-}
+});

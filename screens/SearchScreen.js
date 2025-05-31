@@ -114,7 +114,7 @@ export default function SearchScreen() {
     try {
       console.log(keyword + " 검색 시작");
       const response = await fetch(
-        `http://192.168.0.15:8080/api/heritages?name=${encodeURIComponent(
+        `http://192.168.0.94:8080/api/heritages?name=${encodeURIComponent(
           keyword
         )}`
       );
@@ -221,6 +221,7 @@ export default function SearchScreen() {
               onPress={async () => {
                 try {
                   saveKeyword(item.name); // 최근 검색어
+                  navigation.goBack();
                   navigation.navigate("Home", { heritage: item });
                 } catch (e) {
                   console.error("경로 계산 중 오류:", e);
