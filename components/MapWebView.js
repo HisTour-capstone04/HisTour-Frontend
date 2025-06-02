@@ -42,7 +42,7 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
     if (
       ref.current &&
       routeMode === "transit" &&
-      routeData?.metaData?.plan?.itineraries?.length > 0
+      routeData?.metaData?.plan?.itineraries?.length === 1 // 선택된 하나의 경로만 있을 때만 표시
     ) {
       ref.current.postMessage(
         JSON.stringify({
@@ -200,58 +200,70 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
             function drawCarRoute(data) {
               clearAllRoute();
 
-              const features = data.route.features;
-              const routePoints = data.points;
-              
-              // 1. 경로 폴리라인 그리기
+              const features = data.route?.features;  // TMAP API 응답의 features 배열
+              if (!features || !Array.isArray(features)) {
+                console.error("유효하지 않은 경로 데이터:", data);
+                return;
+              }
+
+              // 1. 경로 폴리라인 그리기 (LineString 타입의 feature만 사용)
+              // 실제 경로에 해당하는 LineString만 필터링
               const lineCoords = features
-              .filter((f) => f.geometry?.type === "LineString")
-              .flatMap((f) => f.geometry.coordinates.map(([lng, lat]) => new Tmapv2.LatLng(lat, lng)));
-              if (lineCoords.length > 0) {window.carPolyline = new Tmapv2.Polyline({
-                path: lineCoords,
-                strokeColor: "#10A37F",
-                strokeWeight: 10,
-                outline: true,
-                outlineColor:'#ffffff',
-                direction: true,
-                directionColor: "white",
-                directionOpacity: 10000,
-                map: window.map,
-              });
-            
-            // 2. 마커 그리기
-            routePoints.forEach((pt, idx) => {
-              const pos = new Tmapv2.LatLng(pt.latitude, pt.longitude);
-              const label =
-              idx === 0 ? "출발지" :
-              idx === routePoints.length - 1 ? "도착지" :
-              "경유지";
-              
-              const marker = new Tmapv2.Marker({
-                position: pos,
-                label: label,
-                labelSize: "30",
-                icon: "https://www.svgrepo.com/show/376955/map-marker.svg",
-                iconSize: new Tmapv2.Size(70, 70),
-                map: window.map,  
-              });
-              
-              window.carRouteMarkers.push(marker);
-            });
+                .filter((f) => 
+                  f.geometry?.type === "LineString" && 
+                  !f.properties?.pointType && // 실제 경로 구간은 pointType이 없음
+                  f.properties?.description !== "경유지와 연결된 가상의 라인입니다" // 가상의 라인 제외
+                )
+                .flatMap((f) => f.geometry.coordinates.map(([lng, lat]) => new Tmapv2.LatLng(lat, lng)));
 
-            // 3. 지도의 중심을 경로 가운데로 이동시키고 줌 아웃
-              const start = routePoints[0];
-              const end = routePoints[routePoints.length - 1];
+              if (lineCoords.length > 0) {
+                window.carPolyline = new Tmapv2.Polyline({
+                  path: lineCoords,
+                  strokeColor: "#10A37F",
+                  strokeWeight: 10,
+                  outline: true,
+                  outlineColor:'#ffffff',
+                  direction: true,
+                  directionColor: "white",
+                  directionOpacity: 10000,
+                  map: window.map,
+                });
+              }
+              
+              // 2. 마커 그리기
+              const routePoints = data.points;
+              if (routePoints && Array.isArray(routePoints)) {
+                routePoints.forEach((pt, idx) => {
+                  const pos = new Tmapv2.LatLng(pt.latitude, pt.longitude);
+                  const label =
+                    idx === 0 ? "출발지" :
+                    idx === routePoints.length - 1 ? "도착지" :
+                    "경유지";
+                  
+                  const marker = new Tmapv2.Marker({
+                    position: pos,
+                    label: label,
+                    labelSize: "30",
+                    icon: "https://www.svgrepo.com/show/376955/map-marker.svg",
+                    iconSize: new Tmapv2.Size(70, 70),
+                    map: window.map,  
+                  });
+                  
+                  window.carRouteMarkers.push(marker);
+                });
 
-              if (start && end) {
-                const midLat = (start.latitude + end.latitude) / 2 - 0.01;
-                const midLng = (start.longitude + end.longitude) / 2;
-                const midPoint = new Tmapv2.LatLng(midLat, midLng);
-                window.map.setCenter(midPoint);
-                window.map.setZoom(14);
+                // 3. 지도의 중심을 경로 가운데로 이동시키고 줌 아웃
+                const start = routePoints[0];
+                const end = routePoints[routePoints.length - 1];
+
+                if (start && end) {
+                  const midLat = (start.latitude + end.latitude) / 2 - 0.01;
+                  const midLng = (start.longitude + end.longitude) / 2;
+                  const midPoint = new Tmapv2.LatLng(midLat, midLng);
+                }
               }
             }
-          }
+          
             
 
             // 기존 자동차 경로 지우기 메서드
@@ -269,7 +281,8 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
               clearAllRoute();
               
                if (!itineraries || itineraries.length === 0) return;
-               const itinerary = itineraries[1];
+               // 전달받은 itineraries 그대로 사용 (선택된 경로만 전달됨)
+               const itinerary = itineraries[0];
                const legs = itinerary.legs;
 
                legs.forEach((leg) => {
@@ -362,8 +375,7 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
               const midLat = (start.lat + end.lat) / 2 - 0.01;
               const midLng = (start.lon + end.lon) / 2;
               const midPoint = new Tmapv2.LatLng(midLat, midLng);
-              window.map.setCenter(midPoint);
-              window.map.setZoom(14);
+              
               
             }
 
@@ -428,8 +440,7 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
                 const midLat = (start.latitude + end.latitude) / 2 - 0.01;
                 const midLng = (start.longitude + end.longitude) / 2;
                 const midPoint = new Tmapv2.LatLng(midLat, midLng);
-                window.map.setCenter(midPoint);
-                window.map.setZoom(14);
+                
               }
             }
           }
