@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "현재 위치를 사용하여 근처 유적지를 탐색합니다.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "앱이 백그라운드에서도 위치를 추적할 수 있도록 허용해주세요."
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "앱이 백그라운드에서도 위치를 추적할 수 있도록 허용해주세요.",
+        "UIBackgroundModes": ["audio"]
       }
     },
     "android": {
@@ -24,7 +25,8 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "package": "com.yourname.histour",
       "adaptiveIcon": {
@@ -39,6 +41,14 @@
       "eas": {
         "projectId": "d5de3e8a-8764-4c5d-ac40-47d7e0b53ba5"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ]
+    ]
   }
 }

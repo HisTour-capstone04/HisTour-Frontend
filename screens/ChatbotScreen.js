@@ -8,7 +8,10 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
+import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { theme } from "../theme/colors";
@@ -31,6 +34,9 @@ export default function ChatbotScreen() {
   const [inputText, setInputText] = useState("");
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [sound, setSound] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentPlayingText, setCurrentPlayingText] = useState(null);
 
   const placeholderOptions = [
     "경복궁에 대해 알려줘",
@@ -181,6 +187,107 @@ export default function ChatbotScreen() {
     }
   }, [route.params]);
 
+  // 오디오 설정
+  const setupAudio = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        staysActiveInBackground: false,
+        playsInSilentModeIOS: true,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+    } catch (error) {
+      console.error("오디오 설정 실패:", error);
+    }
+  };
+
+  // TTS 재생
+  const playTTS = async (text) => {
+    console.log("playTTS 호출");
+    try {
+      // 이미 재생 중인 경우 중지
+      if (sound) {
+        await sound.unloadAsync();
+        setSound(null);
+        setIsPlaying(false);
+
+        // 같은 텍스트를 다시 클릭한 경우 재생 중지로 처리
+        if (currentPlayingText === text) {
+          setCurrentPlayingText(null);
+          return;
+        }
+      }
+
+      setCurrentPlayingText(text);
+
+      // 오디오 설정
+      await setupAudio();
+
+      // API 요청
+      const response = await fetch(
+        "http://" +
+          IP_ADDRESS +
+          `:8080/api/convert-to-speech?text=${encodeURIComponent(text)}`
+      );
+
+      if (!response.ok) {
+        throw new Error("TTS 변환에 실패했습니다");
+      }
+
+      // 바이트 배열을 ArrayBuffer로 변환
+      const arrayBuffer = await response.arrayBuffer();
+
+      // ArrayBuffer를 Base64로 변환
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64Audio = btoa(binary);
+
+      // 임시 파일로 저장
+      const fileUri = FileSystem.documentDirectory + "temp_audio.mp3";
+      await FileSystem.writeAsStringAsync(fileUri, base64Audio, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // 오디오 로드 및 재생
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: fileUri },
+        { shouldPlay: true }
+      );
+
+      setSound(newSound);
+      setIsPlaying(true);
+
+      // 재생 완료 시 콜백
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          setIsPlaying(false);
+          setCurrentPlayingText(null);
+        }
+      });
+    } catch (error) {
+      console.error("TTS 요청 실패:", error);
+      Toast.show({
+        type: "error",
+        text1: "TTS 변환에 실패했습니다",
+        position: "bottom",
+      });
+      setCurrentPlayingText(null);
+    }
+  };
+
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+    };
+  }, [sound]);
+
   const renderMessage = ({ item }) => {
     if (item.from === "bot" && item.loading) {
       return (
@@ -192,14 +299,32 @@ export default function ChatbotScreen() {
 
     return (
       <View>
-        <View
-          style={[
-            styles.message,
-            item.from === "bot" ? styles.bot : styles.user,
-          ]}
-        >
-          <Text style={styles.messageText}>{item.text}</Text>
-        </View>
+        {item.from === "bot" ? (
+          <View style={styles.botMessageContainer}>
+            <View style={[styles.message, styles.bot]}>
+              <Text style={styles.messageText}>{item.text}</Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.ttsButton,
+                currentPlayingText === item.text && styles.ttsButtonPlaying,
+              ]}
+              onPress={() => playTTS(item.text)}
+            >
+              <Ionicons
+                name={
+                  currentPlayingText === item.text ? "stop" : "volume-medium"
+                }
+                size={16}
+                color={theme.main_green}
+              />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={[styles.message, styles.user]}>
+            <Text style={styles.messageText}>{item.text}</Text>
+          </View>
+        )}
         {/* 챗봇 응답에 title이 있을 경우에만 액션 버튼 표시 */}
         {item.from === "bot" && item.title && (
           <View style={styles.actionButtons}>
@@ -315,7 +440,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingLeft: 12,
     gap: 8,
-    marginTop: -5,
+    marginTop: -20,
     marginBottom: 16,
   },
   actionButton: {
@@ -328,5 +453,30 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 12,
     fontWeight: "bold",
+  },
+  botMessageContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  ttsButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+  },
+  ttsButtonPlaying: {
+    backgroundColor: "#e8f5e9",
   },
 });
