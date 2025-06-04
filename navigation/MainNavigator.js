@@ -1,7 +1,7 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
+import HeritageNotificationManager from "../screens/HeritageNotificationManager";
 
-import MainScreen from "../src/screens/MainScreen";
 import HomeScreen from "../screens/Home/HomeScreen";
 import AuthScreen from "../screens/AuthScreen";
 import SearchScreen from "../screens/SearchScreen";
@@ -16,8 +16,11 @@ export default function MainNavigator() {
         initialRouteName="Home"
         screenOptions={{ headerShown: false }}
       >
-        <Stack.Screen name="Main" component={MainScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen
+          name="Notification"
+          component={HeritageNotificationManager}
+        />
         <Stack.Screen
           name="Auth"
           component={AuthScreen}

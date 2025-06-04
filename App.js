@@ -9,6 +9,7 @@ import { UserLocationProvider } from "./contexts/UserLocationContext";
 import { RouteProvider } from "./contexts/RouteContext";
 import { ViaProvider } from "./contexts/ViaContext.js";
 import { RouteModeProvider } from "./contexts/RouteModeContext.js";
+import { HeritageNotificationProvider } from "./contexts/HeritageNotificationContext";
 import "./tasks/UserLocationTask";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BookmarkProvider } from "./contexts/BookmarkContext";
@@ -23,11 +24,13 @@ export default function App() {
           <RouteModeProvider>
             <AuthProvider>
               <BookmarkProvider>
-                <RouteProvider>
-                  <ViaProvider>
-                    <MainNavigator />
-                  </ViaProvider>
-                </RouteProvider>
+                <HeritageNotificationProvider>
+                  <RouteProvider>
+                    <ViaProvider>
+                      <MainNavigator />
+                    </ViaProvider>
+                  </RouteProvider>
+                </HeritageNotificationProvider>
               </BookmarkProvider>
             </AuthProvider>
           </RouteModeProvider>

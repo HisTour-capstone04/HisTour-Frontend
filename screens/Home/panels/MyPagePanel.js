@@ -16,6 +16,7 @@ import Toast from "react-native-root-toast";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { theme } from "../../../theme/colors";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function MyPagePanel() {
   const navigation = useNavigation();
@@ -26,19 +27,34 @@ export default function MyPagePanel() {
 
   return (
     <View style={styles.container}>
-      <Pressable
-        onPress={() => {
-          if (isLoggedIn) {
-            setLogoutModalVisible(true); // 로그인 상태 시 로그아웃 모달 보여줌
-          } else {
-            navigation.navigate("Auth"); // 비로그인 상태 시 로그인 화면으로 이동
-          }
-        }}
-      >
-        <Text style={styles.loginText}>
-          {isLoggedIn ? `${username}님, 좋은 여행 되세요!` : "로그인하세요  >"}
-        </Text>
-      </Pressable>
+      <View style={styles.headerRow}>
+        <Pressable
+          onPress={() => {
+            if (isLoggedIn) {
+              setLogoutModalVisible(true); // 로그인 상태 시 로그아웃 모달 보여줌
+            } else {
+              navigation.navigate("Auth"); // 비로그인 상태 시 로그인 화면으로 이동
+            }
+          }}
+        >
+          <Text style={styles.loginText}>
+            {isLoggedIn
+              ? `${username}님, 좋은 여행 되세요!`
+              : "로그인하세요  >"}
+          </Text>
+        </Pressable>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Notification")}
+          style={styles.iconButton}
+        >
+          <Ionicons
+            name="notifications-outline"
+            size={24}
+            color={theme.main_green}
+          />
+        </TouchableOpacity>
+      </View>
 
       {/* 로그아웃 모달 */}
       <Modal
@@ -83,9 +99,17 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
   },
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   loginText: {
     fontSize: 16,
     color: "#333",
+  },
+  iconButton: {
+    padding: 4,
   },
   modalOverlay: {
     flex: 1,
