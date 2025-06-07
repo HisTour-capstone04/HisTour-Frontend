@@ -36,9 +36,6 @@ export default function DirectionsPanel() {
 
   const { stopovers, removeStopover } = useVia();
   const { routeMode, setRouteMode } = useRouteMode();
-  const [recommendedHeritages, setRecommendedHeritages] = useState([]);
-  const [isLoadingRecommendations, setIsLoadingRecommendations] =
-    useState(false);
 
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [selectedItinerary, setSelectedItinerary] = useState(null);
@@ -284,38 +281,6 @@ export default function DirectionsPanel() {
     }
   };
 
-  // 출발지-목적지 사이의 유적지 조회
-  const fetchHeritagesInPath = async () => {
-    if (!startPoint || !destination) return;
-
-    setIsLoadingRecommendations(true);
-    try {
-      console.log(startPoint.latitude, startPoint.longitude);
-      console.log(destination.latitude, destination.longitude);
-
-      const response = await fetch(
-        "http://" +
-          IP_ADDRESS +
-          `:8080/api/heritages/in-path?srcLatitude=${startPoint.latitude}&srcLongitude=${startPoint.longitude}&destLatitude=${destination.latitude}&destLongitude=${destination.longitude}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      const result = await response.json();
-
-      if (result.data?.heritages) {
-        setRecommendedHeritages(result.data.heritages);
-      }
-    } catch (error) {
-      console.error("경로 상의 유적지 조회 실패:", error);
-    } finally {
-      setIsLoadingRecommendations(false);
-    }
-  };
-
   useEffect(() => {
     if (routeMode === "car" && startPoint && destination) {
       fetchCarRoute();
@@ -351,13 +316,6 @@ export default function DirectionsPanel() {
       setWalkTotalTime(null);
     }
   }, [destination]);
-
-  // 출발지나 목적지가 변경될 때마다 유적지 추천 목록 갱신
-  useEffect(() => {
-    if (routeMode === "via") {
-      fetchHeritagesInPath();
-    }
-  }, [startPoint, destination, routeMode]);
 
   const ref = useRef(null);
 
@@ -615,49 +573,13 @@ export default function DirectionsPanel() {
           <Text style={styles.routeInfo}>자동차 경로 정보가 없습니다.</Text>
         )
       ) : routeMode === "via" ? (
-        stopovers.length === 0 && recommendedHeritages.length === 0 ? (
+        stopovers.length === 0 ? (
           <Text style={styles.emptyMessage}>추가한 경유지가 없습니다.</Text>
         ) : (
           <ScrollView
             style={{ flex: 1 }}
             contentContainerStyle={{ paddingBottom: 30 }}
           >
-            {/* 추천 유적지 목록 */}
-            {isLoadingRecommendations ? (
-              <ActivityIndicator
-                size="small"
-                color={theme.main_green}
-                style={{ marginVertical: 20 }}
-              />
-            ) : recommendedHeritages.length > 0 ? (
-              <>
-                <Text style={styles.recommendTitle}>
-                  가는 길에 이런 곳도 들러볼까요?
-                </Text>
-                {recommendedHeritages.map((heritage) => (
-                  <View key={heritage.id} style={styles.card}>
-                    <View style={styles.header}>
-                      <Text style={styles.name}>
-                        {heritage.name || "이름 없음"}
-                      </Text>
-                    </View>
-                    <Text style={styles.address}>{heritage.detailAddress}</Text>
-                    <Text style={styles.description}>
-                      {heritage.description?.split("\n")[0] || ""}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        addVia(heritage);
-                      }}
-                      style={styles.stopoverAddButton}
-                    >
-                      <Text style={styles.stopoverAddText}>경유지로 추가</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </>
-            ) : null}
-
             {/* 기존 경유지 목록 */}
             {stopovers.length > 0 && (
               <>

@@ -119,7 +119,7 @@ export const HeritageNotificationProvider = ({ children }) => {
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "근처 유적지 발견! 🏛️",
+          title: "내 근처 새로운 유적지가 발견됐어요 👀",
           body: message,
           sound: "default",
           data: {

@@ -56,7 +56,7 @@ export default function NearbyPanel() {
           <Text style={styles.nearbyText}>
             <Text>내 근처에 </Text>
             <Text style={styles.highlightedCount}>{heritages.length}</Text>
-            <Text>개의 유적지가 있어요</Text>
+            <Text>개의 유적지가 있어요 👀</Text>
           </Text>
         )}
       </View>
