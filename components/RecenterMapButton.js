@@ -24,7 +24,7 @@ export default function RecenterMapButton({ webViewRef }) {
 
   return (
     <TouchableOpacity style={styles.container} onPress={handleRecenter}>
-      <Ionicons name="locate" size={30} color={theme.main_green} />
+      <Ionicons name="locate" size={30} color={theme.main_blue} />
     </TouchableOpacity>
   );
 }

@@ -166,7 +166,7 @@ export default function NearbyPanel() {
 
                 <View style={styles.rightButtons}>
                   <TouchableOpacity
-                    style={styles.greenButton}
+                    style={styles.blueButton}
                     onPress={() => {
                       setRoutePoints((prev) => [
                         heritage,
@@ -183,7 +183,7 @@ export default function NearbyPanel() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.greenButton}
+                    style={styles.blueButton}
                     onPress={() => {
                       setDestination(heritage);
                       Toast.show({
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
   highlightedCount: {
     fontSize: 18,
     fontWeight: "bold",
-    color: theme.main_green,
+    color: theme.main_blue,
   },
   card: {
     backgroundColor: "#f9f9f9",
@@ -293,14 +293,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  greenButton: {
-    backgroundColor: theme.main_green,
+  blueButton: {
+    backgroundColor: theme.main_blue,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
   },
   chatButton: {
-    backgroundColor: theme.main_green,
+    backgroundColor: theme.main_blue,
     width: 40,
     height: 40,
     borderRadius: 20,

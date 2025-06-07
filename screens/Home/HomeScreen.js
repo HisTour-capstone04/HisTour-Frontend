@@ -24,6 +24,7 @@ import {
 } from "@react-navigation/native";
 import HeritageDetailPanel from "./HeritageDetailPanel";
 import { useRoute } from "../../contexts/RouteContext";
+import { useRouteMode } from "../../contexts/RouteModeContext";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
@@ -31,15 +32,34 @@ export default function HomeScreen() {
   const [currentTab, setCurrentTab] = useState("nearby"); // 현재 선택된 탭
   const [range, setRange] = useState(500); // 범위 (슬라이더로 조절)
   const [selectedHeritage, setSelectedHeritage] = useState(null); // 검색 결과로 선택된 유적지
-  const { destination } = useRoute();
+  const { startPoint, destination, routeData } = useRoute();
+  const { routeMode } = useRouteMode();
   const navRoute = useNavRoute();
   const webViewRef = useRef(null);
 
+  // 길찾기 모드 여부 확인 (routeData가 있으면 길찾기 중)
+  const isRouting = !!routeData;
+
+  // 출발지 또는 목적지가 설정되면 DirectionsPanel로 전환
   useEffect(() => {
-    if (destination) {
-      setCurrentTab("directions"); // 목적지가 설정되면 DirectionsPanel로 전환
+    if (startPoint || destination) {
+      setCurrentTab("directions");
     }
-  }, [destination]);
+  }, [startPoint, destination]);
+
+  // 길찾기 모드에 따라 지도 요소들 토글
+  useEffect(() => {
+    if (webViewRef.current) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "TOGGLE_MAP_ELEMENTS",
+          payload: {
+            show: !isRouting,
+          },
+        })
+      );
+    }
+  }, [isRouting]);
 
   const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT * 0.6)).current;
   const heritageDetailAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
@@ -98,8 +118,8 @@ export default function HomeScreen() {
             {/* 검색창 */}
             <SearchBar />
 
-            {/* 슬라이더 */}
-            <RangeSlider range={range} setRange={setRange} />
+            {/* 슬라이더 - 길찾기 모드가 아닐 때만 표시 */}
+            {!isRouting && <RangeSlider range={range} setRange={setRange} />}
           </View>
 
           {/* 하단 영역 */}

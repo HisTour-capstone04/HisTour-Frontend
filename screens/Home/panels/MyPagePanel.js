@@ -51,7 +51,7 @@ export default function MyPagePanel() {
           <Ionicons
             name="notifications-outline"
             size={24}
-            color={theme.main_green}
+            color={theme.main_blue}
           />
         </TouchableOpacity>
       </View>
@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
   logoutTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: theme.main_green,
+    color: theme.main_blue,
     marginBottom: 10,
   },
   logoutMessage: {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   logoutBtn: {
     flex: 1,
     padding: 12,
-    backgroundColor: theme.main_green,
+    backgroundColor: theme.main_blue,
     borderTopRightRadius: 8,
     borderBottomRightRadius: 8,
     alignItems: "center",

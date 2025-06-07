@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import { AuthContext } from "./AuthContext";
 import Toast from "react-native-toast-message";
 import { IP_ADDRESS } from "../config/apiKeys";
@@ -8,6 +14,8 @@ export const BookmarkContext = createContext();
 export const BookmarkProvider = ({ children }) => {
   const { accessToken } = useContext(AuthContext); // 사용자 토큰
   const [bookmarks, setBookmarks] = useState([]); // 북마크 유적지 목록 배열
+  const [loading, setLoading] = useState(true);
+  const mapRef = useRef(null);
 
   // 북마크 목록 업데이트 메서드 (context 내부에서만 사용)
   const fetchBookmarks = async () => {
@@ -142,15 +150,34 @@ export const BookmarkProvider = ({ children }) => {
     }
   };
 
+  // 북마크 데이터가 변경될 때마다 지도에 반영
+  useEffect(() => {
+    if (mapRef.current && bookmarks.length > 0) {
+      mapRef.current.postMessage(
+        JSON.stringify({
+          type: "SHOW_BOOKMARK_MARKERS",
+          payload: bookmarks,
+        })
+      );
+    }
+  }, [bookmarks]);
+
   useEffect(() => {
     if (!accessToken) return; // 로그인 상태일 때만 북마크 업데이트
     fetchBookmarks();
   }, [accessToken]);
 
+  const value = {
+    bookmarks,
+    loading,
+    fetchBookmarks,
+    addBookmark,
+    removeBookmark,
+    mapRef, // mapRef를 context value에 추가
+  };
+
   return (
-    <BookmarkContext.Provider
-      value={{ bookmarks, addBookmark, removeBookmark }}
-    >
+    <BookmarkContext.Provider value={value}>
       {children}
     </BookmarkContext.Provider>
   );

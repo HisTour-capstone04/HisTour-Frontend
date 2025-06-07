@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   button: {
-    backgroundColor: theme.main_green,
+    backgroundColor: theme.main_blue,
     padding: 12,
     borderRadius: 6,
     alignItems: "center",
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     color: "#444",
   },
   link: {
-    color: theme.main_green,
+    color: theme.main_blue,
     fontWeight: "bold",
   },
   cancel: {

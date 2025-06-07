@@ -57,9 +57,9 @@ export default function DirectionsPanel() {
   };
 
   const modeIcons = {
-    car: "car-outline",
-    transit: "bus-outline",
-    walk: "walk-outline",
+    car: "car",
+    transit: "bus",
+    walk: "walk",
     via: "add",
   };
 
@@ -333,7 +333,6 @@ export default function DirectionsPanel() {
           </Text>
         </View>
       )}
-
       {routeMode === "walk" && destination && routeData && (
         <View style={styles.summaryRow}>
           <Text style={styles.summaryTime}>
@@ -361,15 +360,13 @@ export default function DirectionsPanel() {
             <Ionicons
               name={modeIcons[modeKey]}
               size={24}
-              color={routeMode === modeKey ? theme.main_green : theme.gray}
+              color={routeMode === modeKey ? theme.main_blue : theme.gray}
             />
           </TouchableOpacity>
         ))}
       </View>
-
       {/* 구분선 */}
       <View style={styles.divider} />
-
       {/* 대중교통 모드 */}
       {routeMode === "transit" ? (
         destination == null ? (
@@ -383,7 +380,7 @@ export default function DirectionsPanel() {
         ) : transitLoading ? (
           <ActivityIndicator
             size="large"
-            color={theme.main_green}
+            color={theme.main_blue}
             style={{ marginVertical: 20 }}
           />
         ) : itineraries && itineraries.length > 0 ? (
@@ -506,7 +503,7 @@ export default function DirectionsPanel() {
         ) : walkLoading ? (
           <ActivityIndicator
             size="large"
-            color={theme.main_green}
+            color={theme.main_blue}
             style={{ marginVertical: 20 }}
           />
         ) : routeData?.features ? (
@@ -543,7 +540,7 @@ export default function DirectionsPanel() {
         ) : carLoading ? (
           <ActivityIndicator
             size="large"
-            color={theme.main_green}
+            color={theme.main_blue}
             style={{ marginVertical: 20 }}
           />
         ) : routeData?.features ? (
@@ -671,7 +668,7 @@ const styles = StyleSheet.create({
     borderRadius: 25,
   },
   selectedButton: {
-    backgroundColor: theme.sub_green,
+    backgroundColor: theme.sub_blue,
   },
   divider: {
     borderBottomColor: theme.gray,
@@ -711,7 +708,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     fontSize: 14,
-    color: theme.main_green,
+    color: theme.main_blue,
     marginBottom: 10,
   },
   summaryRow: {
@@ -723,7 +720,7 @@ const styles = StyleSheet.create({
   summaryTime: {
     fontSize: 14,
     fontWeight: "bold",
-    color: theme.main_green,
+    color: theme.main_blue,
     marginRight: 8,
   },
   summaryDistance: {
@@ -732,7 +729,7 @@ const styles = StyleSheet.create({
   },
   stopoverAddButton: {
     alignSelf: "flex-end",
-    backgroundColor: theme.main_green,
+    backgroundColor: theme.main_blue,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -747,7 +744,7 @@ const styles = StyleSheet.create({
   recommendTitle: {
     fontSize: 16,
     fontWeight: "bold",
-    color: theme.main_green,
+    color: theme.main_blue,
     marginTop: 20,
     marginBottom: 12,
     paddingHorizontal: 4,

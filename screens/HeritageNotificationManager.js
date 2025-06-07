@@ -79,7 +79,7 @@ const HeritageNotificationManager = () => {
           <Switch
             value={isEnabled}
             onValueChange={setIsEnabled}
-            trackColor={{ false: theme.gray, true: theme.main_green }}
+            trackColor={{ false: theme.gray, true: theme.main_blue }}
             thumbColor={isEnabled ? "white" : "#f4f3f4"}
           />
         </View>
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   header: {
-    backgroundColor: theme.main_green,
+    backgroundColor: theme.main_blue,
     paddingTop: 50,
     paddingHorizontal: 15,
     paddingBottom: 10,

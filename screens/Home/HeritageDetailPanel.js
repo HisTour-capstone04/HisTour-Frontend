@@ -129,11 +129,11 @@ const HeritageItem = ({ heritage, onClose }) => {
         </View>
 
         <View style={styles.rightButtons}>
-          <TouchableOpacity style={styles.greenButton} onPress={setAsStart}>
+          <TouchableOpacity style={styles.blueButton} onPress={setAsStart}>
             <Text style={styles.buttonText}>출발</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.greenButton}
+            style={styles.blueButton}
             onPress={setAsDestination}
           >
             <Text style={styles.buttonText}>도착</Text>
@@ -166,6 +166,7 @@ export default function HeritageDetailPanel({
 
     // 마커 클릭이 아닌 경우(검색 등)에만 지도 중심 이동
     if (!isFromMarkerClick) {
+      console.log("검색 화면에서 옴");
       webViewRef.current.postMessage(
         JSON.stringify({
           type: "RECENTER_TO_COORD",
@@ -175,35 +176,63 @@ export default function HeritageDetailPanel({
           },
         })
       );
-    }
 
-    // 해당 유적지 마커 표시
-    webViewRef.current.postMessage(
-      JSON.stringify({
-        type: "SHOW_SINGLE_MARKER",
-        payload: {
-          id: heritage.id || heritage.heritages?.[0]?.id,
-          name: heritage.name || heritage.heritages?.[0]?.name,
-          latitude: heritage.latitude || heritage.heritages?.[0]?.latitude,
-          longitude: heritage.longitude || heritage.heritages?.[0]?.longitude,
-        },
-      })
-    );
+      // 해당 유적지 마커 표시
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "SHOW_SINGLE_MARKER",
+          payload: {
+            id: heritage.id || heritage.heritages?.[0]?.id,
+            name: heritage.name || heritage.heritages?.[0]?.name,
+            latitude: heritage.latitude || heritage.heritages?.[0]?.latitude,
+            longitude: heritage.longitude || heritage.heritages?.[0]?.longitude,
+          },
+        })
+      );
+    } else {
+      console.log("화면 클릭에서 옴");
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          type: "HIGHLIGHT_HERITAGE_MARKER",
+          payload: {
+            id: heritage.id || heritage.heritages?.[0]?.id,
+            latitude: heritage.latitude || heritage.heritages?.[0]?.latitude,
+            longitude: heritage.longitude || heritage.heritages?.[0]?.longitude,
+          },
+        })
+      );
+    }
   }, [heritage, isFromMarkerClick]);
 
-  // 창 닫히면 해당 유적지 마커 제거
+  // 창 닫히면 해당 유적지 마커 제거 (검색 결과에서 온 경우에만)
   useEffect(() => {
     return () => {
       if (webViewRef?.current && heritage) {
-        webViewRef.current.postMessage(
-          JSON.stringify({
-            type: "HIDE_SINGLE_MARKER",
-            payload: { id: heritage.id || heritage.heritages?.[0]?.id },
-          })
-        );
+        if (!isFromMarkerClick) {
+          // 검색 결과에서 온 경우 마커 제거
+          webViewRef.current.postMessage(
+            JSON.stringify({
+              type: "HIDE_SINGLE_MARKER",
+              payload: { id: heritage.id || heritage.heritages?.[0]?.id },
+            })
+          );
+        } else {
+          // 마커 클릭에서 온 경우 하이라이트 제거
+          webViewRef.current.postMessage(
+            JSON.stringify({
+              type: "REMOVE_HERITAGE_HIGHLIGHT",
+              payload: {
+                latitude:
+                  heritage.latitude || heritage.heritages?.[0]?.latitude,
+                longitude:
+                  heritage.longitude || heritage.heritages?.[0]?.longitude,
+              },
+            })
+          );
+        }
       }
     };
-  }, [heritage]);
+  }, [heritage, isFromMarkerClick, webViewRef]);
 
   // 단일 유적지인 경우와 여러 유적지인 경우를 구분
   const heritages = heritage.heritages || [heritage];
@@ -312,14 +341,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  greenButton: {
-    backgroundColor: theme.main_green,
+  blueButton: {
+    backgroundColor: theme.main_blue,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
   },
   chatButton: {
-    backgroundColor: theme.main_green,
+    backgroundColor: theme.main_blue,
     width: 40,
     height: 40,
     borderRadius: 20,

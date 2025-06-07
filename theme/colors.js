@@ -1,6 +1,7 @@
 export const theme = {
-  main_green: "#2EC276",
-  sub_green: "#E7FAF3",
-  gray: "#C7C7CC",
-  red: "#F43E3E",
+  main_blue: "rgb(6, 91, 245)",
+  sub_blue: "rgb(238, 247, 255)",
+  gray: "rgb(184, 184, 184)",
+  bluegray: "rgb(243, 244, 248)",
+  black: "rgb(11, 11, 11)",
 };

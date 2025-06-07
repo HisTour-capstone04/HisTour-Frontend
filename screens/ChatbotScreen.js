@@ -302,7 +302,7 @@ export default function ChatbotScreen() {
         {item.from === "bot" ? (
           <View style={styles.botMessageContainer}>
             <View style={[styles.message, styles.bot]}>
-              <Text style={styles.messageText}>{item.text}</Text>
+              <Text style={styles.botMessageText}>{item.text}</Text>
             </View>
             <TouchableOpacity
               style={[
@@ -316,7 +316,7 @@ export default function ChatbotScreen() {
                   currentPlayingText === item.text ? "stop" : "volume-medium"
                 }
                 size={16}
-                color={theme.main_green}
+                color={theme.main_blue}
               />
             </TouchableOpacity>
           </View>
@@ -357,11 +357,16 @@ export default function ChatbotScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backButton}
+          style={styles.headerButton}
         >
-          <Ionicons name="chevron-back" size={28} color="white" />
+          <Ionicons name="chevron-back" size={28} color={theme.black} />
         </TouchableOpacity>
+
         <Text style={styles.title}>챗봇</Text>
+
+        <TouchableOpacity style={styles.headerButton}>
+          <Ionicons name="settings-outline" size={24} color={theme.black} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -382,7 +387,7 @@ export default function ChatbotScreen() {
             placeholder={"예: " + placeholder}
           />
           <TouchableOpacity onPress={() => sendMessage(inputText)}>
-            <Ionicons name="send" size={24} color={theme.main_green} />
+            <Ionicons name="send" size={24} color={theme.main_blue} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -391,47 +396,79 @@ export default function ChatbotScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "white" },
+  container: { flex: 1, backgroundColor: theme.bluegray },
   header: {
-    backgroundColor: theme.main_green,
-    paddingTop: 50,
+    backgroundColor: "white",
+    paddingTop: 40,
     paddingHorizontal: 15,
-    paddingBottom: 10,
+    paddingBottom: 5,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
-  backButton: { paddingRight: 10 },
-  title: { fontSize: 18, fontWeight: "bold", color: "white" },
-  chatArea: { padding: 10 },
+  headerButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: theme.black,
+  },
+  chatArea: {
+    padding: 10,
+    paddingVertical: 20,
+    paddingHorizontal: 30,
+    backgroundColor: theme.bluegray,
+  },
   message: {
     padding: 12,
     borderRadius: 20,
     marginBottom: 16,
-    maxWidth: "80%",
+    maxWidth: "85%",
     position: "relative",
   },
+
   bot: {
+    paddingHorizontal: 25,
+    paddingVertical: 15,
     alignSelf: "flex-start",
-    backgroundColor: theme.sub_green,
+    backgroundColor: "white",
     borderTopLeftRadius: 0,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 1.41,
   },
   user: {
+    paddingHorizontal: 25,
+    paddingVertical: 15,
     alignSelf: "flex-end",
-    backgroundColor: "#eee",
+    backgroundColor: theme.main_blue,
     borderTopRightRadius: 0,
   },
-  messageText: { color: "#333" },
+  botMessageText: {
+    color: theme.black,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  messageText: { color: "white", fontSize: 15, lineHeight: 20 },
   inputRow: {
+    backgroundColor: "white",
     flexDirection: "row",
     alignItems: "center",
-    borderTopWidth: 1,
-    borderColor: "#ddd",
     padding: 10,
   },
   input: {
     flex: 1,
     padding: 10,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: theme.bluegray,
     borderRadius: 20,
     marginRight: 10,
   },
@@ -441,16 +478,16 @@ const styles = StyleSheet.create({
     paddingLeft: 12,
     gap: 8,
     marginTop: -20,
-    marginBottom: 16,
+    marginBottom: 20,
   },
   actionButton: {
-    backgroundColor: theme.main_green,
+    backgroundColor: theme.sub_blue,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 15,
   },
   actionButtonText: {
-    color: "white",
+    color: theme.main_blue,
     fontSize: 12,
     fontWeight: "bold",
   },
@@ -463,7 +500,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "white",
     justifyContent: "center",
     alignItems: "center",
     marginLeft: 8,
@@ -477,6 +514,6 @@ const styles = StyleSheet.create({
     shadowRadius: 1.41,
   },
   ttsButtonPlaying: {
-    backgroundColor: "#e8f5e9",
+    backgroundColor: theme.sub_blue,
   },
 });

@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 280, // 슬라이드 패널 올라오기 전에 위치 (조정 가능)
     right: 20,
-    backgroundColor: theme.main_green,
+    backgroundColor: theme.main_blue,
     width: 70,
     height: 70,
     borderRadius: 35,

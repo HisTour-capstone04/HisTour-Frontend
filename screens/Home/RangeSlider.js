@@ -14,9 +14,9 @@ export default function RangeSlider({ range, setRange }) {
         step={500}
         value={range}
         onValueChange={(value) => setRange(value)}
-        minimumTrackTintColor={theme.main_green}
+        minimumTrackTintColor={theme.main_blue}
         maximumTrackTintColor={theme.gray}
-        thumbTintColor={theme.main_green}
+        thumbTintColor={theme.main_blue}
       />
 
       {/* 슬라이더 아래 범위 표시 */}

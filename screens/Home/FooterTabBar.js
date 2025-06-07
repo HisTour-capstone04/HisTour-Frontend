@@ -23,12 +23,12 @@ export default function FooterTabBar({ currentTab, onTabPress }) {
           <Ionicons
             name={tab.icon}
             size={24}
-            color={currentTab === tab.key ? theme.main_green : theme.gray}
+            color={currentTab === tab.key ? theme.main_blue : theme.gray}
           />
           <Text
             style={[
               styles.label,
-              currentTab === tab.key && { color: theme.main_green },
+              currentTab === tab.key && { color: theme.main_blue },
             ]}
           >
             {tab.label}
