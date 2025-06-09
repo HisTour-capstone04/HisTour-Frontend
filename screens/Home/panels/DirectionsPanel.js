@@ -378,11 +378,7 @@ export default function DirectionsPanel() {
             대중교통은 경유지를 지원하지 않습니다.
           </Text>
         ) : transitLoading ? (
-          <ActivityIndicator
-            size="large"
-            color={theme.main_blue}
-            style={{ marginVertical: 20 }}
-          />
+          <ActivityIndicator size="large" style={{ marginVertical: 20 }} />
         ) : itineraries && itineraries.length > 0 ? (
           selectedIndex === null ? (
             // 경로 목록
@@ -472,13 +468,21 @@ export default function DirectionsPanel() {
                       {leg.mode} - {leg.start?.name ?? "?"} →{" "}
                       {leg.end?.name ?? "?"}
                     </Text>
-                    <Text style={[styles.routeDescription, { color: "#666" }]}>
+                    <Text
+                      style={[
+                        styles.routeDescription,
+                        { color: theme.bodyblack },
+                      ]}
+                    >
                       {(leg.distance / 1000).toFixed(1)}km,{" "}
                       {Math.round(leg.sectionTime / 60)}분
                     </Text>
                     {leg.route && (
                       <Text
-                        style={[styles.routeDescription, { color: "#666" }]}
+                        style={[
+                          styles.routeDescription,
+                          { color: theme.bodyblack },
+                        ]}
                       >
                         노선: {leg.route}
                       </Text>
@@ -489,10 +493,16 @@ export default function DirectionsPanel() {
                   )}
                 </View>
               ))}
+              <Text></Text>
+              <Text></Text>
             </ScrollView>
           )
         ) : (
-          <Text style={styles.routeInfo}>경로 정보가 없습니다.</Text>
+          <Text style={styles.routeInfo}>
+            대중교통 경로 정보가 없습니다.
+            {"\n"}
+            Tip: 가까운 거리는 걸어가볼까요?
+          </Text>
         )
       ) : // 도보
       routeMode === "walk" ? (
@@ -501,11 +511,7 @@ export default function DirectionsPanel() {
             가고 싶은 유적지를 검색해 보세요.
           </Text>
         ) : walkLoading ? (
-          <ActivityIndicator
-            size="large"
-            color={theme.main_blue}
-            style={{ marginVertical: 20 }}
-          />
+          <ActivityIndicator size="large" style={{ marginVertical: 20 }} />
         ) : routeData?.features ? (
           <ScrollView
             style={{ flex: 1 }}
@@ -528,6 +534,8 @@ export default function DirectionsPanel() {
                   )}
                 </View>
               ))}
+            <Text></Text>
+            <Text></Text>
           </ScrollView>
         ) : (
           <Text style={styles.routeInfo}>도보 경로 정보가 없습니다.</Text>
@@ -538,11 +546,7 @@ export default function DirectionsPanel() {
             가고 싶은 유적지를 검색해 보세요.
           </Text>
         ) : carLoading ? (
-          <ActivityIndicator
-            size="large"
-            color={theme.main_blue}
-            style={{ marginVertical: 20 }}
-          />
+          <ActivityIndicator size="large" style={{ marginVertical: 20 }} />
         ) : routeData?.features ? (
           <ScrollView
             style={{ flex: 1 }}
@@ -565,6 +569,8 @@ export default function DirectionsPanel() {
                   )}
                 </View>
               ))}
+            <Text></Text>
+            <Text></Text>
           </ScrollView>
         ) : (
           <Text style={styles.routeInfo}>자동차 경로 정보가 없습니다.</Text>
@@ -575,12 +581,11 @@ export default function DirectionsPanel() {
         ) : (
           <ScrollView
             style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: 30 }}
+            contentContainerStyle={{ paddingBottom: 30, marginTop: 10 }}
           >
             {/* 기존 경유지 목록 */}
             {stopovers.length > 0 && (
               <>
-                <Text style={styles.recommendTitle}>추가된 경유지</Text>
                 {stopovers.map((heritage) => (
                   <View key={heritage.id} style={styles.card}>
                     <View style={styles.header}>
@@ -592,7 +597,11 @@ export default function DirectionsPanel() {
                       <TouchableOpacity
                         onPress={() => removeStopover(heritage.id)}
                       >
-                        <Ionicons name="close" size={18} color="#999" />
+                        <Ionicons
+                          name="close"
+                          size={18}
+                          color={theme.darkgray}
+                        />
                       </TouchableOpacity>
                     </View>
                     <Text style={styles.address}>
@@ -616,6 +625,8 @@ export default function DirectionsPanel() {
                 ))}
               </>
             )}
+            <Text></Text>
+            <Text></Text>
           </ScrollView>
         )
       ) : null}
@@ -625,7 +636,7 @@ export default function DirectionsPanel() {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: theme.bluegray,
     borderRadius: 12,
     padding: 15,
     marginBottom: 12,
@@ -643,19 +654,21 @@ const styles = StyleSheet.create({
   },
   address: {
     fontSize: 14,
-    color: "#888",
+    color: theme.darkgray,
     marginBottom: 8,
   },
   description: {
     fontSize: 13,
-    color: "#333",
+    color: theme.bodyblack,
+    lineHeight: 20,
     marginBottom: 4,
   },
   modeTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "bold",
-    marginBottom: 12,
-    color: "#222",
+    margin: 12,
+
+    color: theme.black,
   },
   modeRow: {
     flexDirection: "row",
@@ -681,30 +694,33 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textAlignVertical: "center", // Android만 적용됨
     marginTop: 20, // iOS 대응용 수동 여백
-    fontSize: 15,
+    fontSize: 16,
     color: theme.gray,
   },
 
   routeInfo: {
+    flex: 1,
+    textAlign: "center",
+    textAlignVertical: "center", // Android만 적용됨
+    marginTop: 20, // iOS 대응용 수동 여백
     fontSize: 16,
-    textAlign: "left",
-    paddingVertical: 5,
-    color: "#333",
+    lineHeight: 26,
+    color: theme.gray,
   },
   totalTime: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#222",
+    color: theme.black,
   },
   routeSummary: {
     fontSize: 13,
-    color: "#888",
+    color: theme.darkgray,
   },
   routeCard: {
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
+    borderBottomColor: theme.divider,
   },
   backButton: {
     fontSize: 14,
@@ -714,18 +730,19 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
-    marginLeft: 15,
+    marginBottom: 18,
+    marginLeft: 14,
+    marginTop: -4,
   },
   summaryTime: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: "bold",
     color: theme.main_blue,
     marginRight: 8,
   },
   summaryDistance: {
-    fontSize: 13,
-    color: "#999",
+    fontSize: 15,
+    color: theme.darkgray,
   },
   stopoverAddButton: {
     alignSelf: "flex-end",
@@ -735,33 +752,25 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginTop: 10,
   },
-
   stopoverAddText: {
     color: "white",
     fontSize: 12,
     fontWeight: "bold",
   },
-  recommendTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: theme.main_blue,
-    marginTop: 20,
-    marginBottom: 12,
-    paddingHorizontal: 4,
-  },
+
   routeDescription: {
     fontSize: 15,
-    color: "#333",
+    color: theme.bodyblack,
     paddingVertical: 12,
     paddingHorizontal: 15,
   },
   dividerLight: {
-    borderBottomColor: "#eee",
+    borderBottomColor: theme.divider,
     borderBottomWidth: 1,
     marginHorizontal: 0,
   },
   transitSummary: {
-    backgroundColor: "#f9f9f9",
+    backgroundColor: theme.bluegray,
     borderRadius: 8,
     marginTop: 10,
   },

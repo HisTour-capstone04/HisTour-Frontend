@@ -15,6 +15,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
+import { theme } from "../theme/colors";
+
 import { useUserLocation } from "../contexts/UserLocationContext";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import Toast from "react-native-toast-message";
@@ -205,7 +207,9 @@ export default function SearchScreen() {
             ) : null
           }
           ListEmptyComponent={
-            <Text style={{ padding: 20, textAlign: "center", color: "#999" }}>
+            <Text
+              style={{ padding: 20, textAlign: "center", color: theme.gray }}
+            >
               최근 검색어 내역이 없습니다.
             </Text>
           }
@@ -271,7 +275,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
-    borderColor: "#ccc",
+    borderColor: theme.gray,
     marginLeft: 10,
   },
   clearButton: {
@@ -281,30 +285,37 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     height: 40,
+    fontSize: 16,
+    color: theme.bodyblack,
   },
   sectionTitle: {
-    marginTop: 20,
+    marginTop: 15,
     marginBottom: 10,
-    marginLeft: 15,
-    fontSize: 16,
+    marginLeft: 30,
+    fontSize: 18,
     fontWeight: "bold",
+    color: theme.black,
   },
   keyword: {
     paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderBottomColor: "#ddd",
+    paddingHorizontal: 30,
+    borderBottomColor: theme.divider,
     borderBottomWidth: 1,
+    fontSize: 16,
+    color: theme.bodyblack,
   },
   resultItem: {
     paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderBottomColor: "#ccc",
+    paddingHorizontal: 30,
+    borderBottomColor: theme.divider,
     borderBottomWidth: 1,
+    fontSize: 16,
+    color: theme.bodyblack,
   },
   clearAllText: {
     textAlign: "center",
     paddingVertical: 15,
-    color: "#888",
+    color: theme.gray,
     fontSize: 14,
   },
 });

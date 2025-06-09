@@ -1,5 +1,5 @@
 // HeritageDetailPanel.js
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  PanResponder,
+  Dimensions,
+  Animated,
+  Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Toast from "react-native-toast-message";
@@ -17,6 +21,14 @@ import { theme } from "../../theme/colors";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../../contexts/AuthContext";
 
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+// 패널 위치 상수
+const PANEL_POSITIONS = {
+  TOP: SCREEN_HEIGHT * 0.2, // 20%
+  MIDDLE: SCREEN_HEIGHT * 0.6, // 60%
+  BOTTOM: SCREEN_HEIGHT * 0.82, // 82%
+};
+
 // 단일 유적지 상세 정보 컴포넌트
 const HeritageItem = ({ heritage, onClose }) => {
   const { setDestination, setRoutePoints } = useRoute();
@@ -24,7 +36,22 @@ const HeritageItem = ({ heritage, onClose }) => {
   const { bookmarks, addBookmark, removeBookmark } = useBookmark();
   const { isLoggedIn } = useContext(AuthContext);
   const navigation = useNavigation();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [expandedIds, setExpandedIds] = useState([]);
+  const [expandedAddresses, setExpandedAddresses] = useState([]);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
+  const [currentHeritageImages, setCurrentHeritageImages] = useState([]);
+
+  const toggleDescription = (id) => {
+    setExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAddress = (id) => {
+    setExpandedAddresses((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
+  };
 
   const firstLine = heritage.description?.split("\n")[0] || "";
   const isBookmarked = bookmarks.some(
@@ -57,22 +84,44 @@ const HeritageItem = ({ heritage, onClose }) => {
   return (
     <View style={styles.itemContainer}>
       <Text style={styles.name}>{heritage.name}</Text>
-      <Text style={styles.address}>{heritage.detailAddress}</Text>
-      <Text style={styles.description}>
-        {isExpanded ? heritage.description : firstLine}
+      <View style={styles.locationContainer}>
+        <Text style={styles.address}>
+          {heritage.detailAddress.length > 20 &&
+          !expandedAddresses.includes(heritage.id)
+            ? `${heritage.detailAddress.slice(0, 20)}...`
+            : heritage.detailAddress}
+        </Text>
+        {heritage.detailAddress.length > 20 && (
+          <TouchableOpacity
+            onPress={() => toggleAddress(heritage.id)}
+            style={styles.addressButton}
+          >
+            <Ionicons
+              name={
+                expandedAddresses.includes(heritage.id)
+                  ? "chevron-up"
+                  : "chevron-down"
+              }
+              size={16}
+              color={theme.gray}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+      <Text style={[styles.description]}>
+        {expandedIds.includes(heritage.id) ? heritage.description : firstLine}
+        {heritage.description && heritage.description.includes("\n") && (
+          <>
+            <Text> </Text>
+            <Text
+              onPress={() => toggleDescription(heritage.id)}
+              style={styles.moreButton}
+            >
+              {expandedIds.includes(heritage.id) ? "접기" : "더보기"}
+            </Text>
+          </>
+        )}
       </Text>
-      {heritage.description && (
-        <TouchableOpacity
-          onPress={() => setIsExpanded((prev) => !prev)}
-          style={{ alignSelf: "center", marginBottom: 6 }}
-        >
-          <Ionicons
-            name={isExpanded ? "chevron-up-outline" : "chevron-down-outline"}
-            size={18}
-            color="#666"
-          />
-        </TouchableOpacity>
-      )}
 
       {heritage.imageUrls?.length > 0 && (
         <ScrollView
@@ -81,7 +130,15 @@ const HeritageItem = ({ heritage, onClose }) => {
           style={styles.imageScroll}
         >
           {heritage.imageUrls.map((url, idx) => (
-            <Image key={idx} source={{ uri: url }} style={styles.image} />
+            <TouchableOpacity
+              key={idx}
+              onPress={() => {
+                setSelectedImageIndex(idx);
+                setCurrentHeritageImages(heritage.imageUrls);
+              }}
+            >
+              <Image source={{ uri: url }} style={styles.image} />
+            </TouchableOpacity>
           ))}
         </ScrollView>
       )}
@@ -108,7 +165,7 @@ const HeritageItem = ({ heritage, onClose }) => {
             <Ionicons
               name={isBookmarked ? "bookmark" : "bookmark-outline"}
               size={24}
-              color="#444"
+              color={isBookmarked ? theme.main_blue : theme.black}
             />
           </TouchableOpacity>
           <TouchableOpacity
@@ -124,7 +181,7 @@ const HeritageItem = ({ heritage, onClose }) => {
               });
             }}
           >
-            <Ionicons name="add-circle-outline" size={24} color="#444" />
+            <Ionicons name="add-circle-outline" size={24} color={theme.black} />
           </TouchableOpacity>
         </View>
 
@@ -146,10 +203,90 @@ const HeritageItem = ({ heritage, onClose }) => {
               });
             }}
           >
-            <Ionicons name="chatbubble-ellipses" size={20} color="white" />
+            <Ionicons name="chatbubble-ellipses" size={25} color="white" />
           </TouchableOpacity>
         </View>
       </View>
+
+      <Modal
+        visible={selectedImageIndex !== null}
+        transparent={true}
+        onRequestClose={() => {
+          setSelectedImageIndex(null);
+          setCurrentHeritageImages([]);
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => {
+                setSelectedImageIndex(null);
+                setCurrentHeritageImages([]);
+              }}
+            >
+              <View style={styles.closeButtonBackground}>
+                <Ionicons name="close" size={24} color="white" />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.imageContainer}>
+              {currentHeritageImages.length > 1 && (
+                <>
+                  <TouchableOpacity
+                    style={[
+                      styles.navigationButton,
+                      styles.leftButton,
+                      selectedImageIndex === 0 && styles.disabledButton,
+                    ]}
+                    onPress={() =>
+                      selectedImageIndex > 0 &&
+                      setSelectedImageIndex((prev) => prev - 1)
+                    }
+                    disabled={selectedImageIndex === 0}
+                  >
+                    <Ionicons name="chevron-back" size={30} color="white" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.navigationButton,
+                      styles.rightButton,
+                      selectedImageIndex === currentHeritageImages.length - 1 &&
+                        styles.disabledButton,
+                    ]}
+                    onPress={() =>
+                      selectedImageIndex < currentHeritageImages.length - 1 &&
+                      setSelectedImageIndex((prev) => prev + 1)
+                    }
+                    disabled={
+                      selectedImageIndex === currentHeritageImages.length - 1
+                    }
+                  >
+                    <Ionicons name="chevron-forward" size={30} color="white" />
+                  </TouchableOpacity>
+                </>
+              )}
+
+              <Image
+                source={{
+                  uri: currentHeritageImages[selectedImageIndex],
+                }}
+                style={styles.modalImage}
+                resizeMode="contain"
+              />
+            </View>
+
+            {currentHeritageImages.length > 1 && (
+              <View style={styles.imageCounter}>
+                <Text style={styles.imageCounterText}>
+                  {`${selectedImageIndex + 1}/${currentHeritageImages.length}`}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -160,9 +297,116 @@ export default function HeritageDetailPanel({
   onClose,
   webViewRef,
   isFromMarkerClick = false,
+  panelAnim,
 }) {
+  const currentSlide = useRef(PANEL_POSITIONS.MIDDLE);
+  const dragStartPosition = useRef(PANEL_POSITIONS.MIDDLE);
+
+  panelAnim.addListener(({ value }) => {
+    currentSlide.current = value;
+  });
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dy) > 10;
+      },
+      onPanResponderGrant: () => {
+        // 드래그 시작할 때 현재 위치 저장
+        dragStartPosition.current = currentSlide.current;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        // 드래그 중에는 자유롭게 움직이되, 범위 제한
+        const newValue = dragStartPosition.current + gestureState.dy;
+        panelAnim.setValue(
+          Math.min(
+            Math.max(PANEL_POSITIONS.TOP, newValue),
+            PANEL_POSITIONS.BOTTOM
+          )
+        );
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const currentPosition = currentSlide.current;
+
+        // 현재 어느 위치에 가장 가까운지 판단
+        let currentState;
+        if (
+          currentPosition <=
+          (PANEL_POSITIONS.TOP + PANEL_POSITIONS.MIDDLE) / 2
+        ) {
+          currentState = "TOP";
+        } else if (
+          currentPosition <=
+          (PANEL_POSITIONS.MIDDLE + PANEL_POSITIONS.BOTTOM) / 2
+        ) {
+          currentState = "MIDDLE";
+        } else {
+          currentState = "BOTTOM";
+        }
+
+        let nextPosition;
+
+        // 아래로 드래그 (dy > 50)
+        if (gestureState.dy > 50) {
+          switch (currentState) {
+            case "TOP":
+              nextPosition = PANEL_POSITIONS.MIDDLE;
+              break;
+            case "MIDDLE":
+              nextPosition = PANEL_POSITIONS.BOTTOM;
+              break;
+            case "BOTTOM":
+              nextPosition = PANEL_POSITIONS.BOTTOM;
+              break;
+          }
+        }
+        // 위로 드래그 (dy < -50)
+        else if (gestureState.dy < -50) {
+          switch (currentState) {
+            case "TOP":
+              nextPosition = PANEL_POSITIONS.TOP;
+              break;
+            case "MIDDLE":
+              nextPosition = PANEL_POSITIONS.TOP;
+              break;
+            case "BOTTOM":
+              nextPosition = PANEL_POSITIONS.MIDDLE;
+              break;
+          }
+        }
+        // 작은 드래그는 가장 가까운 위치로 스냅
+        else {
+          const positions = [
+            PANEL_POSITIONS.TOP,
+            PANEL_POSITIONS.MIDDLE,
+            PANEL_POSITIONS.BOTTOM,
+          ];
+          nextPosition = positions.reduce((prev, curr) =>
+            Math.abs(curr - currentPosition) < Math.abs(prev - currentPosition)
+              ? curr
+              : prev
+          );
+        }
+
+        Animated.spring(panelAnim, {
+          toValue: nextPosition,
+          useNativeDriver: false,
+          damping: 25,
+          mass: 0.8,
+        }).start();
+      },
+    })
+  ).current;
+
   useEffect(() => {
     if (!heritage || !webViewRef?.current) return;
+
+    // 알림에서 온 경우
+    if (heritage.isFromNotification && heritage.heritages) {
+      console.log("알림에서 옴");
+
+      return;
+    }
 
     // 마커 클릭이 아닌 경우(검색 등)에만 지도 중심 이동
     if (!isFromMarkerClick) {
@@ -207,9 +451,14 @@ export default function HeritageDetailPanel({
   // 창 닫히면 해당 유적지 마커 제거 (검색 결과에서 온 경우에만)
   useEffect(() => {
     return () => {
+      if (heritage.isFromNotification) {
+        return;
+      }
+
       if (webViewRef?.current && heritage) {
         if (!isFromMarkerClick) {
           // 검색 결과에서 온 경우 마커 제거
+
           webViewRef.current.postMessage(
             JSON.stringify({
               type: "HIDE_SINGLE_MARKER",
@@ -217,7 +466,7 @@ export default function HeritageDetailPanel({
             })
           );
         } else {
-          // 마커 클릭에서 온 경우 하이라이트 제거
+          // 마커 클릭에서 온 경우 하이라이트 마커 제거
           webViewRef.current.postMessage(
             JSON.stringify({
               type: "REMOVE_HERITAGE_HIGHLIGHT",
@@ -242,14 +491,21 @@ export default function HeritageDetailPanel({
   return (
     <View style={styles.wrapper}>
       <View style={styles.header}>
+        {/* 드래그 가능 영역 */}
+        <View style={styles.dragZone} {...panResponder.panHandlers} />
+
+        {/* 핸들 */}
+        <View style={styles.panelHandle} />
+
         <TouchableOpacity onPress={onClose} style={styles.fixedClose}>
-          <Ionicons name="close" size={24} color="#333" />
+          <Ionicons name="close" size={24} color={theme.black} />
         </TouchableOpacity>
       </View>
 
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
       >
         {heritages.map((item, index) => (
           <React.Fragment key={item.id}>
@@ -269,6 +525,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: "hidden",
+    height: SCREEN_HEIGHT * 0.8,
   },
   header: {
     height: 40,
@@ -290,34 +547,40 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
     paddingTop: 0,
-    paddingBottom: 40,
   },
   itemContainer: {
     paddingVertical: 15,
   },
   divider: {
     height: 1,
-    backgroundColor: "#eee",
+    backgroundColor: theme.divider,
     marginVertical: 10,
   },
   name: {
+    color: theme.black,
     fontWeight: "bold",
     fontSize: 18,
     marginBottom: 6,
   },
+  locationContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+    marginBottom: 6,
+  },
   address: {
     fontSize: 14,
-    color: "#888",
-    marginBottom: 8,
+    color: theme.darkgray,
+    flex: 1,
   },
   description: {
     fontSize: 14,
-    color: "#333",
-    marginBottom: 4,
-    lineHeight: 20,
+    color: theme.bodyblack,
+    lineHeight: 22,
+    marginBottom: 20,
   },
-  imageScroll: {
-    marginBottom: 10,
+  moreButton: {
+    color: theme.gray,
   },
   image: {
     width: 120,
@@ -342,26 +605,30 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   blueButton: {
-    backgroundColor: theme.main_blue,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    backgroundColor: theme.sub_blue,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     borderRadius: 20,
   },
   chatButton: {
     backgroundColor: theme.main_blue,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
   },
   buttonText: {
-    color: "white",
-    fontSize: 13,
+    color: theme.main_blue,
+    fontSize: 14,
     fontWeight: "bold",
   },
   iconButton: {
     padding: 6,
+  },
+  addressButton: {
+    padding: 4,
+    marginLeft: 4,
   },
   headerText: {
     position: "absolute",
@@ -370,5 +637,83 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
     color: "#666",
+  },
+  dragZone: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 40,
+  },
+  panelHandle: {
+    position: "absolute",
+    top: 0,
+    alignSelf: "center",
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "#ccc",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 60,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    zIndex: 1,
+  },
+  closeButtonBackground: {
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 20,
+    padding: 8,
+  },
+  imageContainer: {
+    width: "90%",
+    height: "90%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalImage: {
+    width: "100%",
+    height: "100%",
+    maxWidth: Dimensions.get("window").width * 0.9,
+    maxHeight: Dimensions.get("window").height * 0.8,
+  },
+  navigationButton: {
+    position: "absolute",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderRadius: 25,
+    padding: 10,
+    zIndex: 1,
+  },
+  leftButton: {
+    left: 10,
+  },
+  rightButton: {
+    right: 10,
+  },
+  disabledButton: {
+    opacity: 0.3,
+  },
+  imageCounter: {
+    position: "absolute",
+    bottom: 50,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  imageCounterText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
   },
 });

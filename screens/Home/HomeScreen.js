@@ -28,6 +28,13 @@ import { useRouteMode } from "../../contexts/RouteModeContext";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
+// 패널 위치 상수 추가
+const PANEL_POSITIONS = {
+  TOP: SCREEN_HEIGHT * 0.2, // 20%
+  MIDDLE: SCREEN_HEIGHT * 0.6, // 60%
+  BOTTOM: SCREEN_HEIGHT * 0.82, // 82%
+};
+
 export default function HomeScreen() {
   const [currentTab, setCurrentTab] = useState("nearby"); // 현재 선택된 탭
   const [range, setRange] = useState(500); // 범위 (슬라이더로 조절)
@@ -66,29 +73,40 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (selectedHeritage) {
-      Animated.timing(heritageDetailAnim, {
-        toValue: SCREEN_HEIGHT * 0.45,
-        duration: 300,
+      // 시작 위치를 항상 화면 아래로 초기화
+      heritageDetailAnim.setValue(SCREEN_HEIGHT);
+
+      Animated.spring(heritageDetailAnim, {
+        toValue: PANEL_POSITIONS.MIDDLE,
         useNativeDriver: false,
+        damping: 20,
+        mass: 0.8,
+        velocity: 2,
       }).start();
     }
   }, [selectedHeritage]);
 
   const handleClosePanel = () => {
-    Animated.timing(heritageDetailAnim, {
-      toValue: SCREEN_HEIGHT,
-      duration: 300,
-      useNativeDriver: false,
-    }).start(() => {
-      setSelectedHeritage(null);
-    });
+    setSelectedHeritage(null);
   };
 
   useEffect(() => {
     const heritageFromSearch = navRoute.params?.heritage;
+    const heritagesFromNotification = navRoute.params?.heritages;
+    const isFromNotification = navRoute.params?.isFromNotification;
+
     if (heritageFromSearch) {
       setSelectedHeritage(heritageFromSearch);
       navRoute.params.heritage = null; // 초기화 (무한루프 방지)
+    } else if (heritagesFromNotification && isFromNotification) {
+      // 알림에서 온 경우 여러 유적지를 포함하는 객체로 설정
+      setSelectedHeritage({
+        heritages: heritagesFromNotification,
+        isFromNotification: true,
+      });
+      // 파라미터 초기화
+      navRoute.params.heritages = null;
+      navRoute.params.isFromNotification = null;
     }
   }, [navRoute.params]);
 
@@ -100,6 +118,20 @@ export default function HomeScreen() {
       setSelectedHeritage(data.payload);
     }
   };
+
+  // 알림 핸들러 설정
+  useEffect(() => {
+    global.notificationHandler = (heritages) => {
+      setSelectedHeritage({
+        heritages: heritages,
+        isFromNotification: true,
+      });
+    };
+
+    return () => {
+      global.notificationHandler = null;
+    };
+  }, []);
 
   return (
     <HeritageProvider range={range}>
@@ -124,24 +156,30 @@ export default function HomeScreen() {
 
           {/* 하단 영역 */}
           {/* 지도 중심 설정 & 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
-          <RecenterMapButton webViewRef={webViewRef} />
-          <ChatbotButton />
+          {!selectedHeritage && (
+            <>
+              <RecenterMapButton
+                webViewRef={webViewRef}
+                slideAnim={slideAnim}
+              />
+              <ChatbotButton slideAnim={slideAnim} />
 
-          {/* 슬라이드 패널 */}
-          <SlidePanel currentTab={currentTab} slideAnim={slideAnim} />
+              {/* 슬라이드 패널 */}
+              <SlidePanel currentTab={currentTab} slideAnim={slideAnim} />
+            </>
+          )}
 
           {selectedHeritage && (
             <Animated.View
               style={[styles.overlayPanel, { top: heritageDetailAnim }]}
             >
-              <View style={{ flex: 1 }}>
-                <HeritageDetailPanel
-                  heritage={selectedHeritage}
-                  onClose={handleClosePanel}
-                  webViewRef={webViewRef}
-                  isFromMarkerClick={selectedHeritage.isFromMarkerClick}
-                />
-              </View>
+              <HeritageDetailPanel
+                heritage={selectedHeritage}
+                onClose={handleClosePanel}
+                webViewRef={webViewRef}
+                isFromMarkerClick={selectedHeritage.isFromMarkerClick}
+                panelAnim={heritageDetailAnim}
+              />
             </Animated.View>
           )}
 
@@ -169,8 +207,8 @@ const styles = StyleSheet.create({
   },
   overlayPanel: {
     position: "absolute",
-    height: SCREEN_HEIGHT * 0.6,
-    top: SCREEN_HEIGHT * 0.45,
+    height: SCREEN_HEIGHT * 0.8,
+    top: SCREEN_HEIGHT * 0.6,
     left: 0,
     right: 0,
     backgroundColor: "white",
@@ -178,5 +216,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     padding: 20,
     zIndex: 999,
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
 });

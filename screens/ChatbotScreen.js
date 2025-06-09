@@ -13,7 +13,11 @@ import {
 import { Audio } from "expo-av";
 import * as FileSystem from "expo-file-system";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { theme } from "../theme/colors";
 import { useUserLocation } from "../contexts/UserLocationContext";
 import { AuthContext } from "../contexts/AuthContext";
@@ -22,6 +26,7 @@ import { IP_ADDRESS } from "../config/apiKeys";
 import { useVia } from "../contexts/ViaContext";
 import { useRoute as useRouteContext } from "../contexts/RouteContext";
 import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ChatbotScreen() {
   const navigation = useNavigation();
@@ -37,6 +42,7 @@ export default function ChatbotScreen() {
   const [sound, setSound] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentPlayingText, setCurrentPlayingText] = useState(null);
+  const [isAutoTTSEnabled, setIsAutoTTSEnabled] = useState(false);
 
   const placeholderOptions = [
     "경복궁에 대해 알려줘",
@@ -288,6 +294,39 @@ export default function ChatbotScreen() {
     };
   }, [sound]);
 
+  // 설정 불러오기 - useEffect 대신 useFocusEffect 사용
+  useFocusEffect(
+    React.useCallback(() => {
+      loadSettings();
+    }, [])
+  );
+
+  const loadSettings = async () => {
+    try {
+      const value = await AsyncStorage.getItem("chatbot_auto_tts");
+      setIsAutoTTSEnabled(value === "true");
+    } catch (error) {
+      console.error("설정 불러오기 실패:", error);
+    }
+  };
+
+  // 챗봇 응답이 왔을 때 자동 TTS 재생
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (
+      isAutoTTSEnabled &&
+      lastMessage?.from === "bot" &&
+      !lastMessage.loading
+    ) {
+      playTTS(lastMessage.text);
+    }
+  }, [messages, isAutoTTSEnabled]);
+
+  // 설정 화면으로 이동
+  const handleSettingsPress = () => {
+    navigation.navigate("ChatbotConfig");
+  };
+
   const renderMessage = ({ item }) => {
     if (item.from === "bot" && item.loading) {
       return (
@@ -364,7 +403,10 @@ export default function ChatbotScreen() {
 
         <Text style={styles.title}>챗봇</Text>
 
-        <TouchableOpacity style={styles.headerButton}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={handleSettingsPress}
+        >
           <Ionicons name="settings-outline" size={24} color={theme.black} />
         </TouchableOpacity>
       </View>
@@ -384,7 +426,7 @@ export default function ChatbotScreen() {
             value={inputText}
             onChangeText={setInputText}
             style={styles.input}
-            placeholder={"예: " + placeholder}
+            placeholder={" 예: " + placeholder}
           />
           <TouchableOpacity onPress={() => sendMessage(inputText)}>
             <Ionicons name="send" size={24} color={theme.main_blue} />
@@ -470,7 +512,8 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: theme.bluegray,
     borderRadius: 20,
-    marginRight: 10,
+    marginHorizontal: 10,
+    fontSize: 15,
   },
   actionButtons: {
     flexDirection: "row",

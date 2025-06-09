@@ -45,7 +45,7 @@ export default function MyPagePanel() {
         </Pressable>
 
         <TouchableOpacity
-          onPress={() => navigation.navigate("Notification")}
+          onPress={() => navigation.navigate("Config")}
           style={styles.iconButton}
         >
           <Ionicons

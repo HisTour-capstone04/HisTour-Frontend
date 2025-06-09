@@ -52,7 +52,7 @@ export default function SearchBar() {
                 <Ionicons
                   name="chevron-back"
                   size={20}
-                  color="#888"
+                  color={theme.darkgray}
                   style={styles.icon}
                 />
               </TouchableOpacity>
@@ -115,7 +115,7 @@ export default function SearchBar() {
                             <Ionicons
                               name="remove-circle-outline"
                               size={20}
-                              color="#888"
+                              color={theme.darkgray}
                             />
                           </TouchableOpacity>
                         )}
@@ -128,7 +128,7 @@ export default function SearchBar() {
                           <MaterialCommunityIcons
                             name="drag"
                             size={22}
-                            color="#888"
+                            color={theme.darkgray}
                           />
                         </TouchableOpacity>
                       </View>
@@ -148,13 +148,13 @@ export default function SearchBar() {
           <Ionicons
             name="search"
             size={18}
-            color="#888"
+            color={theme.gray}
             style={styles.searchIcon}
           />
           <TextInput
             style={styles.fakeInput}
             placeholder="검색어를 입력하세요"
-            placeholderTextColor="#888"
+            placeholderTextColor={theme.gray}
             editable={false}
             pointerEvents="none"
           />
@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   },
   fakeInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     color: theme.gray,
   },
   destinationContainer: {
@@ -204,22 +204,22 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   locationText: {
-    fontSize: 15,
-    color: "#333",
+    fontSize: 16,
+    color: theme.bodyblack,
     fontWeight: "500",
     flex: 1,
     marginLeft: 5,
   },
   divider: {
     height: 1,
-    backgroundColor: "#ddd",
+    backgroundColor: theme.divider,
     marginVertical: 8,
     marginLeft: 5,
   },
   destinationText: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "500",
-    color: "#333",
+    color: theme.bodyblack,
     marginTop: 2,
     marginLeft: 5,
   },
@@ -230,6 +230,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 1,
     borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
+    borderBottomColor: theme.divider,
   },
 });

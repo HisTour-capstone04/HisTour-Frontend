@@ -16,6 +16,8 @@ export const HeritageNotificationProvider = ({ children }) => {
   const [isRunning, setIsRunning] = useState(false);
   const [lastNotificationTime, setLastNotificationTime] = useState(0);
   const [checkIntervalId, setCheckIntervalId] = useState(null);
+  const [notificationSubscription, setNotificationSubscription] =
+    useState(null);
 
   const { userLocation, locationPermission } = useUserLocation();
   const { accessToken } = useAuth();
@@ -33,6 +35,25 @@ export const HeritageNotificationProvider = ({ children }) => {
             shouldSetBadge: false,
           }),
         });
+
+        // 알림 응답 리스너 설정
+        const subscription =
+          Notifications.addNotificationResponseReceivedListener((response) => {
+            console.log(
+              "사용자가 알림을 클릭했습니다:",
+              response.notification.request.content
+            );
+            const data = response.notification.request.content.data;
+
+            // 전역 이벤트로 알림 데이터 전달
+            if (data && data.heritages) {
+              if (global.notificationHandler) {
+                global.notificationHandler(data.heritages);
+              }
+            }
+          });
+
+        setNotificationSubscription(subscription);
 
         // 디바이스가 물리적 디바이스인지 확인
         if (!Device.isDevice) {
@@ -64,6 +85,12 @@ export const HeritageNotificationProvider = ({ children }) => {
     };
 
     setupNotifications();
+
+    return () => {
+      if (notificationSubscription) {
+        notificationSubscription.remove();
+      }
+    };
   }, []);
 
   // userLocation이 변경될 때마다 ref 업데이트
@@ -107,7 +134,7 @@ export const HeritageNotificationProvider = ({ children }) => {
   };
 
   // 로컬 알림 전송
-  const sendNotification = async (message, count = 0) => {
+  const sendNotification = async (message, count = 0, heritages = []) => {
     try {
       const currentTime = Date.now();
 
@@ -126,6 +153,7 @@ export const HeritageNotificationProvider = ({ children }) => {
             type: "heritage_nearby",
             count: count,
             timestamp: currentTime,
+            heritages: heritages,
           },
         },
         trigger: null, // 즉시 전송
@@ -147,18 +175,18 @@ export const HeritageNotificationProvider = ({ children }) => {
 
     try {
       const { latitude, longitude } = location;
-      const heritageData = await fetchNearbyHeritages(latitude, longitude);
+      const response = await fetchNearbyHeritages(latitude, longitude);
 
-      if (!heritageData || !heritageData.data) {
+      if (!response || !response.data) {
         console.log("유적지 데이터 없음");
         return;
       }
 
-      const { data } = heritageData;
+      const { data } = response;
 
       // 유적지가 있는 경우에만 알림 전송
       if (data.count > 0 && data.message) {
-        await sendNotification(data.message, data.count);
+        await sendNotification(data.message, data.count, data.heritages);
       } else {
         console.log("근처에 유적지 없음");
       }
