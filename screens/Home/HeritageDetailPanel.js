@@ -53,10 +53,14 @@ const HeritageItem = ({ heritage, onClose }) => {
     );
   };
 
-  const firstLine = heritage.description?.split("\n")[0] || "";
+  const maxLength = 100; // 최대 표시 글자 수
+  const shouldShowMore =
+    heritage.description && heritage.description.length > maxLength;
   const isBookmarked = bookmarks.some(
     (b) => b.id === heritage.id || b.heritageId === heritage.id
   );
+
+  const firstLine = heritage.description?.split("\n")[0] || "";
 
   const setAsStart = () => {
     setRoutePoints((prev) => [
@@ -109,8 +113,12 @@ const HeritageItem = ({ heritage, onClose }) => {
         )}
       </View>
       <Text style={[styles.description]}>
-        {expandedIds.includes(heritage.id) ? heritage.description : firstLine}
-        {heritage.description && heritage.description.includes("\n") && (
+        {expandedIds.includes(heritage.id)
+          ? heritage.description
+          : shouldShowMore
+          ? `${heritage.description.slice(0, maxLength)}...`
+          : heritage.description}
+        {shouldShowMore && (
           <>
             <Text> </Text>
             <Text

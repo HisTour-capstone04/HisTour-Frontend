@@ -1,12 +1,36 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import { IP_ADDRESS } from "../config/apiKeys";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [username, setUsername] = useState(null);
+  const [recommendations, setRecommendations] = useState([]);
+
+  // 추천 유적지 불러오기
+  const fetchRecommendations = async (userLocation) => {
+    try {
+      if (!accessToken || !userLocation) return;
+      const response = await fetch(
+        `http://${IP_ADDRESS}:8080/api/heritages/recommend?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      const data = await response.json();
+      if (data.data && data.data.recommendations) {
+        setRecommendations(data.data.recommendations);
+      }
+    } catch (error) {
+      console.error("추천 유적지 불러오기 실패:", error);
+    }
+  };
 
   useEffect(() => {
     const loadAuth = async () => {
@@ -41,6 +65,7 @@ export const AuthProvider = ({ children }) => {
       await AsyncStorage.removeItem("username");
       setAccessToken(null);
       setUsername(null);
+      setRecommendations([]);
       Toast.show({
         type: "success",
         text1: "로그아웃 되었습니다",
@@ -55,7 +80,15 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider
-      value={{ accessToken, username, isLoggedIn, login, logout }}
+      value={{
+        accessToken,
+        username,
+        isLoggedIn,
+        login,
+        logout,
+        recommendations,
+        fetchRecommendations,
+      }}
     >
       {children}
     </AuthContext.Provider>

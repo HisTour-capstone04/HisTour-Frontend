@@ -14,6 +14,7 @@ import FooterTabBar from "./FooterTabBar";
 
 import RecenterMapButton from "../../components/RecenterMapButton";
 import ChatbotButton from "../../components/ChatbotButton";
+import HeritageFindButton from "../../components/HeritageFindButton";
 import MapWebView from "../../components/MapWebView";
 
 import { HeritageProvider } from "../../contexts/HeritageContext";
@@ -39,6 +40,8 @@ export default function HomeScreen() {
   const [currentTab, setCurrentTab] = useState("nearby"); // 현재 선택된 탭
   const [range, setRange] = useState(500); // 범위 (슬라이더로 조절)
   const [selectedHeritage, setSelectedHeritage] = useState(null); // 검색 결과로 선택된 유적지
+  const [mapCenter, setMapCenter] = useState(null);
+  const [mapBounds, setMapBounds] = useState(null);
   const { startPoint, destination, routeData } = useRoute();
   const { routeMode } = useRouteMode();
   const navRoute = useNavRoute();
@@ -112,10 +115,22 @@ export default function HomeScreen() {
 
   // RN -> WebView 메시지 핸들러 (마커 클릭 시 heritageDetailPanel 열림)
   const handleWebViewMessage = (event) => {
-    const data = JSON.parse(event.nativeEvent.data);
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
 
-    if (data.type === "HERITAGE_MARKER_CLICKED") {
-      setSelectedHeritage(data.payload);
+      if (data.type === "MAP_CENTER_AND_BOUNDS") {
+        const { center, bounds } = data.payload;
+        console.log("center", center);
+        console.log("bounds", bounds);
+        setMapCenter(center);
+        setMapBounds(bounds);
+      }
+
+      if (data.type === "HERITAGE_MARKER_CLICKED") {
+        setSelectedHeritage(data.payload);
+      }
+    } catch (error) {
+      console.error("메시지 처리 중 에러:", error);
     }
   };
 
@@ -163,6 +178,12 @@ export default function HomeScreen() {
                 slideAnim={slideAnim}
               />
               <ChatbotButton slideAnim={slideAnim} />
+              <HeritageFindButton
+                webViewRef={webViewRef}
+                slideAnim={slideAnim}
+                center={mapCenter}
+                bounds={mapBounds}
+              />
 
               {/* 슬라이드 패널 */}
               <SlidePanel currentTab={currentTab} slideAnim={slideAnim} />

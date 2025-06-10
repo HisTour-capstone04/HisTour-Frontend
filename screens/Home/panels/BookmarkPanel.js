@@ -59,7 +59,9 @@ export default function BookmarkPanel() {
       >
         {bookmarks.map((heritage, index) => {
           const isExpanded = expandedIds.includes(heritage.id);
-          const firstLine = heritage.description?.split("\n")[0] || "";
+          const maxLength = 100; // 최대 표시 글자 수
+          const shouldShowMore =
+            heritage.description && heritage.description.length > maxLength;
 
           return (
             <React.Fragment key={heritage.id}>
@@ -90,19 +92,22 @@ export default function BookmarkPanel() {
                   )}
                 </View>
                 <Text style={[styles.description]}>
-                  {isExpanded ? heritage.description : firstLine}
-                  {heritage.description &&
-                    heritage.description.includes("\n") && (
-                      <>
-                        <Text> </Text>
-                        <Text
-                          onPress={() => toggleDescription(heritage.id)}
-                          style={styles.moreButton}
-                        >
-                          {isExpanded ? "접기" : "더보기"}
-                        </Text>
-                      </>
-                    )}
+                  {isExpanded
+                    ? heritage.description
+                    : shouldShowMore
+                    ? `${heritage.description.slice(0, maxLength)}...`
+                    : heritage.description}
+                  {shouldShowMore && (
+                    <>
+                      <Text> </Text>
+                      <Text
+                        onPress={() => toggleDescription(heritage.id)}
+                        style={styles.moreButton}
+                      >
+                        {isExpanded ? "접기" : "더보기"}
+                      </Text>
+                    </>
+                  )}
                 </Text>
 
                 {heritage.imageUrls?.length > 0 && (
