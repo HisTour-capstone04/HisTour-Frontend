@@ -52,8 +52,7 @@ export default function ChatbotConfigScreen() {
         <View style={styles.settingItem}>
           <Text style={styles.settingText}>TTS 자동 재생</Text>
           <Switch
-            trackColor={{ false: "#767577", true: theme.main_blue }}
-            thumbColor={isAutoTTSEnabled ? "#fff" : "#f4f3f4"}
+            trackColor={{ false: theme.darkgray, true: theme.main_blue }}
             onValueChange={toggleAutoTTS}
             value={isAutoTTSEnabled}
           />
@@ -108,8 +107,8 @@ const styles = StyleSheet.create({
     color: theme.black,
   },
   settingDescription: {
-    fontSize: 12,
-    color: "#666",
+    fontSize: 13,
+    color: theme.darkgray,
     marginLeft: 10,
     marginTop: 2,
   },

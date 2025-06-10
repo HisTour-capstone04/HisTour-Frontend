@@ -32,7 +32,7 @@ export default function HeritageFindButton({
 
   // slideAnim 값에 따라 버튼의 bottom 위치를 계산
   const buttonPosition = Animated.subtract(
-    440, // 기본 위치 (ChatbotButton: 280, RecenterButton: 360보다 더 위에 위치)
+    480, // 기본 위치
     Animated.subtract(slideAnim, SCREEN_HEIGHT * 0.6) // 슬라이드 패널이 움직인 거리
   );
 
@@ -119,7 +119,7 @@ export default function HeritageFindButton({
       ]}
     >
       <TouchableOpacity onPress={handlePress} style={styles.button}>
-        <Ionicons name="location" size={30} color={theme.main_blue} />
+        <Ionicons name="location" size={25} color={theme.main_blue} />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -128,13 +128,13 @@ export default function HeritageFindButton({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    right: 20,
+    right: 25,
     zIndex: 20,
   },
   button: {
     backgroundColor: "white",
-    width: 70,
-    height: 70,
+    width: 50,
+    height: 50,
     borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",

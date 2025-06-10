@@ -15,6 +15,7 @@ import FooterTabBar from "./FooterTabBar";
 import RecenterMapButton from "../../components/RecenterMapButton";
 import ChatbotButton from "../../components/ChatbotButton";
 import HeritageFindButton from "../../components/HeritageFindButton";
+import AccordionButton from "../../components/AccordionButton";
 import MapWebView from "../../components/MapWebView";
 
 import { HeritageProvider } from "../../contexts/HeritageContext";
@@ -42,6 +43,7 @@ export default function HomeScreen() {
   const [selectedHeritage, setSelectedHeritage] = useState(null); // 검색 결과로 선택된 유적지
   const [mapCenter, setMapCenter] = useState(null);
   const [mapBounds, setMapBounds] = useState(null);
+  const [isAccordionExpanded, setIsAccordionExpanded] = useState(false); // 아코디언 상태 추가
   const { startPoint, destination, routeData } = useRoute();
   const { routeMode } = useRouteMode();
   const navRoute = useNavRoute();
@@ -173,16 +175,25 @@ export default function HomeScreen() {
           {/* 지도 중심 설정 & 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
           {!selectedHeritage && (
             <>
-              <RecenterMapButton
-                webViewRef={webViewRef}
-                slideAnim={slideAnim}
-              />
+              {isAccordionExpanded && (
+                <>
+                  <RecenterMapButton
+                    webViewRef={webViewRef}
+                    slideAnim={slideAnim}
+                  />
+                  <HeritageFindButton
+                    webViewRef={webViewRef}
+                    slideAnim={slideAnim}
+                    center={mapCenter}
+                    bounds={mapBounds}
+                  />
+                </>
+              )}
               <ChatbotButton slideAnim={slideAnim} />
-              <HeritageFindButton
-                webViewRef={webViewRef}
+              <AccordionButton
                 slideAnim={slideAnim}
-                center={mapCenter}
-                bounds={mapBounds}
+                isExpanded={isAccordionExpanded}
+                onToggle={() => setIsAccordionExpanded(!isAccordionExpanded)}
               />
 
               {/* 슬라이드 패널 */}

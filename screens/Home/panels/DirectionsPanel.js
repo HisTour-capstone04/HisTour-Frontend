@@ -49,11 +49,14 @@ export default function DirectionsPanel() {
 
   const { userLocation } = useUserLocation();
 
+  const [expandedIds, setExpandedIds] = useState([]);
+  const [expandedAddresses, setExpandedAddresses] = useState([]);
+
   const modeLabels = {
     car: "자동차",
     transit: "대중교통",
     walk: "도보",
-    via: "경유지",
+    via: "장바구니",
   };
 
   const modeIcons = {
@@ -319,6 +322,18 @@ export default function DirectionsPanel() {
 
   const ref = useRef(null);
 
+  const toggleDescription = (id) => {
+    setExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAddress = (id) => {
+    setExpandedAddresses((prev) =>
+      prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
+    );
+  };
+
   return (
     <View style={{ flex: 1 }}>
       {/* 모드 텍스트 */}
@@ -577,52 +592,103 @@ export default function DirectionsPanel() {
         )
       ) : routeMode === "via" ? (
         stopovers.length === 0 ? (
-          <Text style={styles.emptyMessage}>추가한 경유지가 없습니다.</Text>
+          <Text style={styles.emptyMessage}>
+            장바구니에 담은 유적지가 없습니다.
+          </Text>
         ) : (
           <ScrollView
             style={{ flex: 1 }}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 30, marginTop: 10 }}
           >
             {/* 기존 경유지 목록 */}
             {stopovers.length > 0 && (
               <>
-                {stopovers.map((heritage) => (
-                  <View key={heritage.id} style={styles.card}>
-                    <View style={styles.header}>
-                      <Text style={styles.name}>
-                        {heritage.name ||
-                          heritage.location?.name ||
-                          "이름 없음"}
+                {stopovers.map((heritage) => {
+                  const isExpanded = expandedIds.includes(heritage.id);
+                  const maxLength = 100;
+                  const description =
+                    heritage.description?.split("\n")[0] ||
+                    heritage.location?.description?.split("\n")[0] ||
+                    "";
+                  const shouldShowMore = description.length > maxLength;
+                  const address =
+                    heritage.detailAddress || heritage.location?.detailAddress;
+
+                  return (
+                    <View key={heritage.id} style={styles.card}>
+                      <View style={styles.header}>
+                        <Text style={styles.name}>
+                          {heritage.name ||
+                            heritage.location?.name ||
+                            "이름 없음"}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => removeStopover(heritage.id)}
+                        >
+                          <Ionicons
+                            name="close"
+                            size={18}
+                            color={theme.darkgray}
+                          />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.addressContainer}>
+                        <Text style={styles.address}>
+                          {address &&
+                          address.length > 20 &&
+                          !expandedAddresses.includes(heritage.id)
+                            ? `${address.slice(0, 20)}...`
+                            : address}
+                        </Text>
+                        {address && address.length > 20 && (
+                          <TouchableOpacity
+                            onPress={() => toggleAddress(heritage.id)}
+                            style={styles.addressButton}
+                          >
+                            <Ionicons
+                              name={
+                                expandedAddresses.includes(heritage.id)
+                                  ? "chevron-up"
+                                  : "chevron-down"
+                              }
+                              size={16}
+                              color={theme.gray}
+                            />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <Text style={styles.description}>
+                        {isExpanded
+                          ? description
+                          : shouldShowMore
+                          ? `${description.slice(0, maxLength)}...`
+                          : description}
+                        {shouldShowMore && (
+                          <>
+                            <Text> </Text>
+                            <Text
+                              onPress={() => toggleDescription(heritage.id)}
+                              style={styles.moreButton}
+                            >
+                              {isExpanded ? "접기" : "더보기"}
+                            </Text>
+                          </>
+                        )}
                       </Text>
                       <TouchableOpacity
-                        onPress={() => removeStopover(heritage.id)}
+                        onPress={() => {
+                          addVia(heritage);
+                        }}
+                        style={styles.stopoverAddButton}
                       >
-                        <Ionicons
-                          name="close"
-                          size={18}
-                          color={theme.darkgray}
-                        />
+                        <Text style={styles.stopoverAddText}>
+                          경유지로 추가
+                        </Text>
                       </TouchableOpacity>
                     </View>
-                    <Text style={styles.address}>
-                      {heritage.detailAddress ||
-                        heritage.location?.detailAddress}
-                    </Text>
-                    <Text style={styles.description}>
-                      {heritage.description?.split("\n")[0] ||
-                        heritage.location?.description?.split("\n")[0] ||
-                        ""}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        addVia(heritage); // 진짜 경유지로 추가
-                      }}
-                      style={styles.stopoverAddButton}
-                    >
-                      <Text style={styles.stopoverAddText}>경유지로 추가</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
+                  );
+                })}
               </>
             )}
             <Text></Text>
@@ -652,10 +718,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flexShrink: 1,
   },
+  addressContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
   address: {
     fontSize: 14,
     color: theme.darkgray,
-    marginBottom: 8,
+    flex: 1,
+    marginRight: 4,
+  },
+
+  addressButton: {
+    padding: 5,
+    alignSelf: "flex-start",
   },
   description: {
     fontSize: 13,
@@ -747,8 +824,8 @@ const styles = StyleSheet.create({
   stopoverAddButton: {
     alignSelf: "flex-end",
     backgroundColor: theme.main_blue,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
     marginTop: 10,
   },
@@ -776,5 +853,9 @@ const styles = StyleSheet.create({
   },
   transitLegInfo: {
     paddingVertical: 5,
+  },
+  moreButton: {
+    color: theme.darkgray,
+    fontSize: 12,
   },
 });

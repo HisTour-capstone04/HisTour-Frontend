@@ -183,8 +183,8 @@ const HeritageItem = ({ heritage, onClose }) => {
               Toast.show({
                 type: added ? "success" : "info",
                 text1: added
-                  ? "경유지에 추가되었습니다"
-                  : "이미 경유지 목록에 있습니다",
+                  ? "장바구니에 추가되었습니다"
+                  : "이미 장바구니에 있습니다",
                 position: "bottom",
               });
             }}

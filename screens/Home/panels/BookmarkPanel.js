@@ -46,6 +46,27 @@ export default function BookmarkPanel() {
     return (
       <View style={styles.container}>
         <Text style={styles.loginNotice}>로그인 후 이용 가능합니다</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Auth")}>
+          <Text
+            style={{
+              fontSize: 16,
+              textDecorationLine: "underline",
+              color: theme.main_blue,
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
+            로그인
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (bookmarks.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loginNotice}>북마크한 유적지가 없습니다</Text>
       </View>
     );
   }
@@ -57,6 +78,9 @@ export default function BookmarkPanel() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        <View style={[styles.header, { marginHorizontal: -20 }]}>
+          <Text style={styles.titleText}>북마크 목록</Text>
+        </View>
         {bookmarks.map((heritage, index) => {
           const isExpanded = expandedIds.includes(heritage.id);
           const maxLength = 100; // 최대 표시 글자 수
@@ -150,8 +174,8 @@ export default function BookmarkPanel() {
                         Toast.show({
                           type: added ? "success" : "info",
                           text1: added
-                            ? "경유지에 추가되었습니다"
-                            : "이미 경유지 목록에 있습니다",
+                            ? "장바구니에 추가되었습니다"
+                            : "이미 장바구니에 있습니다",
                           position: "bottom",
                         });
                       }}
@@ -321,6 +345,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
+  },
+  header: {
+    padding: 12,
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.black,
   },
   scrollView: {
     flex: 1,

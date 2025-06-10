@@ -7,7 +7,7 @@ import { IP_ADDRESS } from "../config/apiKeys";
 
 const CHECK_INTERVAL = 5 * 60 * 1000; // 5분 (밀리초)
 const RADIUS = 1000; // 1km
-const MIN_NOTIFICATION_INTERVAL = 60 * 1000; // 1분 간격으로 알림 제한
+const MIN_NOTIFICATION_INTERVAL = 5 * 60 * 1000; // 5분 간격으로 알림 제한
 
 const HeritageNotificationContext = createContext();
 
@@ -101,14 +101,14 @@ export const HeritageNotificationProvider = ({ children }) => {
   // 근처 유적지 API 호출
   const fetchNearbyHeritages = async (latitude, longitude) => {
     if (!accessToken) {
-      console.error("인증 토큰이 없습니다.");
-      return null;
+      console.warn("토큰 없음 → 알림 요청 중단");
+      return;
     }
 
     try {
       const url = `http://${IP_ADDRESS}:8080/api/heritages/nearby-for-alarm?latitude=${latitude}&longitude=${longitude}&radius=${RADIUS}`;
 
-      console.log("유적지 조회 API 호출:", url);
+      console.log("알림 API 호출:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -214,7 +214,9 @@ export const HeritageNotificationProvider = ({ children }) => {
       return;
     }
 
+    // 알림 서비스가 활성화되고 필요한 조건이 모두 충족된 경우에만 시작
     console.log("알림 서비스 시작");
+
     // 첫 번째 체크 즉시 실행
     checkAndNotifyHeritages(userLocation);
 

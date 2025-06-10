@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
   },
   rangeLabel: {
     fontSize: 12,
-    color: "#000", // 또는 "#333"
+    color: theme.black,
     marginTop: -2,
   },
 });

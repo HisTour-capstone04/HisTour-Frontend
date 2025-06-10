@@ -63,34 +63,49 @@ export default function NearbyPanel() {
     return (
       <View style={styles.container}>
         <Text style={styles.loginNotice}>로그인 후 이용 가능합니다</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Auth")}>
+          <Text
+            style={{
+              fontSize: 16,
+              textDecorationLine: "underline",
+              color: theme.main_blue,
+              textAlign: "center",
+              marginTop: 20,
+            }}
+          >
+            로그인
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        {isLoading ? (
-          <Text style={styles.loadingText}>유적지를 불러오고 있어요...</Text>
-        ) : (
-          <Text style={styles.nearbyText}>
-            <Text>내 근처에{"\n"}</Text>
-            {heritages.length > 0 ? (
-              <>
-                <Text style={styles.highlightedCount}>{heritages.length}</Text>
-                <Text>개의 유적지가 있어요 👀</Text>
-              </>
-            ) : (
-              <Text>유적지가 없어요</Text>
-            )}
-          </Text>
-        )}
-      </View>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[styles.contentContainer, { paddingTop: 0 }]}
         showsVerticalScrollIndicator={false}
       >
+        <View style={[styles.header, { marginHorizontal: -20 }]}>
+          {isLoading ? (
+            <Text style={styles.loadingText}>유적지를 불러오고 있어요...</Text>
+          ) : (
+            <Text style={styles.nearbyText}>
+              <Text>내 근처에{"\n"}</Text>
+              {heritages.length > 0 ? (
+                <>
+                  <Text style={styles.highlightedCount}>
+                    {heritages.length}
+                  </Text>
+                  <Text>개의 유적지가 있어요 👀</Text>
+                </>
+              ) : (
+                <Text>유적지가 없어요</Text>
+              )}
+            </Text>
+          )}
+        </View>
         {sortedHeritages.map((heritage, index) => {
           const isExpanded = expandedIds.includes(heritage.id);
           const maxLength = 100; // 최대 표시 글자 수
@@ -211,8 +226,8 @@ export default function NearbyPanel() {
                         Toast.show({
                           type: added ? "success" : "info",
                           text1: added
-                            ? "경유지에 추가되었습니다"
-                            : "이미 경유지 목록에 있습니다",
+                            ? "장바구니에 추가되었습니다"
+                            : "이미 장바구니에 있습니다",
                           position: "bottom",
                         });
                       }}

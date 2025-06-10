@@ -159,9 +159,9 @@ export default function ChatbotScreen() {
 
   const handleAddVia = async (title) => {
     // 사용자 메시지 추가 (API 호출 스킵)
-    sendMessage(`${title}를 경유지로 추가해줘`, true);
+    sendMessage(`${title}를 장바구니에 추가해줘`, true);
 
-    // 유적지 검색 및 경유지 추가
+    // 유적지 검색 및 장바구니 추가
     const heritage = await findHeritage(title);
     if (heritage) {
       const added = await addStopover(heritage);
@@ -170,8 +170,8 @@ export default function ChatbotScreen() {
         ...prev,
         {
           text: added
-            ? `${title}가 경유지에 추가되었습니다!`
-            : `${title}는 이미 경유지 목록에 있습니다.`,
+            ? `${title}가 장바구니에 추가되었습니다!`
+            : `${title}는 이미 장바구니 목록에 있습니다.`,
           from: "bot",
         },
       ]);
@@ -383,7 +383,7 @@ export default function ChatbotScreen() {
               style={styles.actionButton}
               onPress={() => handleAddVia(item.title)}
             >
-              <Text style={styles.actionButtonText}>경유지에 추가</Text>
+              <Text style={styles.actionButtonText}>장바구니에 추가</Text>
             </TouchableOpacity>
           </View>
         )}
