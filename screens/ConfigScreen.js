@@ -7,21 +7,34 @@ import {
   Switch,
   Modal,
 } from "react-native";
-import { useHeritageNotification } from "../contexts/HeritageNotificationContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
-import { theme } from "../theme/colors";
-import { AuthContext } from "../contexts/AuthContext";
 
+// 내부 컴포넌트 및 유틸리티 import
+import { useHeritageNotification } from "../contexts/HeritageNotificationContext";
+import { AuthContext } from "../contexts/AuthContext";
+import { theme } from "../theme/colors";
+
+/**
+ * 설정 화면 컴포넌트
+ *
+ * 주요 기능 :
+ * 1. 내 주변 유적지 알림 설정 (on/off)
+ * 2. 로그아웃 버튼
+ */
 const ConfigScreen = () => {
   const navigation = useNavigation();
   const { isEnabled, setIsEnabled } = useHeritageNotification();
   const { logout } = useContext(AuthContext);
+
+  // 로그아웃 확인 모달 표시 상태
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   return (
     <View style={styles.container}>
+      {/* 헤더 */}
       <View style={styles.header}>
+        {/* 뒤로 가기 버튼 */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.headerButton}
@@ -29,12 +42,16 @@ const ConfigScreen = () => {
           <Ionicons name="chevron-back" size={28} color={theme.black} />
         </TouchableOpacity>
 
+        {/* 화면 제목 */}
         <Text style={styles.title}>설정</Text>
 
+        {/* 헤더 우측 여백 */}
         <View style={styles.headerButton} />
       </View>
 
+      {/* 설정 내용 */}
       <View style={styles.content}>
+        {/* 유적지 알림 설정 항목 (스위치) */}
         <View style={styles.settingItem}>
           <Text style={styles.settingText}>내 주변 유적지 알림 받기</Text>
           <Switch
@@ -43,10 +60,12 @@ const ConfigScreen = () => {
             value={isEnabled}
           />
         </View>
+        {/* 설정 설명 */}
         <Text style={styles.settingDescription}>
           5분마다 주변 1km 내의 유적지를 확인하여 알림을 보냅니다
         </Text>
 
+        {/* 로그아웃 버튼 */}
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => setLogoutModalVisible(true)}
@@ -55,7 +74,7 @@ const ConfigScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* 로그아웃 모달 */}
+      {/* 로그아웃 확인 모달 */}
       <Modal
         visible={logoutModalVisible}
         transparent
@@ -69,7 +88,9 @@ const ConfigScreen = () => {
               언제든지 다시 로그인하실 수 있어요.
             </Text>
 
+            {/* 모달 버튼 영역 */}
             <View style={styles.logoutButtonRow}>
+              {/* 취소 버튼 */}
               <TouchableOpacity
                 style={styles.logoutCancelBtn}
                 onPress={() => setLogoutModalVisible(false)}
@@ -77,12 +98,13 @@ const ConfigScreen = () => {
                 <Text style={styles.logoutCancelText}>다음에</Text>
               </TouchableOpacity>
 
+              {/* 로그아웃 확인 버튼 */}
               <TouchableOpacity
                 style={styles.logoutBtn}
                 onPress={() => {
-                  logout();
-                  setLogoutModalVisible(false);
-                  navigation.navigate("Home");
+                  logout(); // 로그아웃 실행
+                  setLogoutModalVisible(false); // 모달 닫기
+                  navigation.navigate("Home"); // 홈 화면으로 이동
                 }}
               >
                 <Text style={styles.logoutText}>로그아웃</Text>
@@ -95,6 +117,7 @@ const ConfigScreen = () => {
   );
 };
 
+// 스타일 정의
 const styles = StyleSheet.create({
   container: {
     flex: 1,

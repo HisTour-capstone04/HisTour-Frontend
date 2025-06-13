@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,26 +8,42 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
+  ActivityIndicator,
 } from "react-native";
-import { Audio } from "expo-av";
-import * as FileSystem from "expo-file-system";
 import { Ionicons } from "@expo/vector-icons";
 import {
   useNavigation,
   useRoute,
   useFocusEffect,
 } from "@react-navigation/native";
-import { theme } from "../theme/colors";
-import { useUserLocation } from "../contexts/UserLocationContext";
-import { AuthContext } from "../contexts/AuthContext";
-import { ActivityIndicator } from "react-native";
-import { IP_ADDRESS } from "../config/apiKeys";
-import { useVia } from "../contexts/ViaContext";
-import { useRoute as useRouteContext } from "../contexts/RouteContext";
+
+// Expo 관련 import
+import { Audio } from "expo-av";
+import * as FileSystem from "expo-file-system";
+
+// 외부 라이브러리 import
 import Toast from "react-native-toast-message";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// 내부 컴포넌트 및 유틸리티 import
+import { theme } from "../theme/colors";
+import { useUserLocation } from "../contexts/UserLocationContext";
+import { AuthContext } from "../contexts/AuthContext";
+import { useVia } from "../contexts/ViaContext";
+import { useRoute as useRouteContext } from "../contexts/RouteContext";
+
+// 서버 주소 상수
+import { IP_ADDRESS } from "../config/apiKeys";
+
+/**
+ * 챗봇 화면 컴포넌트
+ *
+ * 주요 기능 :
+ * 1. AI 챗봇과의 대화 기능
+ * 2. 챗봇 응답 TTS 음성 재생
+ * 3. 유적지 관련 답변을 위한 꼬리 질문 버튼 (역사적 배경, 목적지 설정, 장바구니 추가) 제공
+ * 4. 챗봇 설정 화면 연결
+ */
 export default function ChatbotScreen() {
   const navigation = useNavigation();
   const route = useRoute();
@@ -36,14 +52,15 @@ export default function ChatbotScreen() {
   const { addStopover } = useVia();
   const { setDestination } = useRouteContext();
 
-  const [inputText, setInputText] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [sound, setSound] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentPlayingText, setCurrentPlayingText] = useState(null);
-  const [isAutoTTSEnabled, setIsAutoTTSEnabled] = useState(false);
+  const [inputText, setInputText] = useState(""); // 사용자 입력 텍스트
+  const [messages, setMessages] = useState([]); // 채팅 기록 저장 배열
+  const [isLoading, setIsLoading] = useState(false); // 챗봇 응답 로딩 상태
+  const [sound, setSound] = useState(null); // TTS 오디오 객체
+  const [isPlaying, setIsPlaying] = useState(false); // TTS 오디오 재생 상태
+  const [currentPlayingText, setCurrentPlayingText] = useState(null); // 현재 재생 중인 텍스트
+  const [isAutoTTSEnabled, setIsAutoTTSEnabled] = useState(false); // 자동 TTS 재생 모드 설정 상태
 
+  // 사용자 입력 placeholder에 띄울 랜덤 문장들
   const placeholderOptions = [
     "경복궁에 대해 알려줘",
     "수원 화성의 역사적 배경에 대해 알려줘",
@@ -51,16 +68,18 @@ export default function ChatbotScreen() {
     "남한산성에 대해 설명해줘",
   ];
 
+  // 랜덤 문장 반환
   const getRandomPlaceholder = () => {
     const randomIndex = Math.floor(Math.random() * placeholderOptions.length);
     return placeholderOptions[randomIndex];
   };
 
-  const [placeholder, setPlaceholder] = useState(getRandomPlaceholder());
+  const [placeholder, setPlaceholder] = useState(getRandomPlaceholder()); // 사용자 입력 placeholder에 띄울 문장
 
-  // 유적지 검색 및 처리 함수
+  // 유적지 검색 및 처리 메서드
   const findHeritage = async (title) => {
     try {
+      // 서버에 유적지 검색 요청
       const response = await fetch(
         "http://" +
           IP_ADDRESS +
@@ -77,14 +96,16 @@ export default function ChatbotScreen() {
     }
   };
 
+  // "역사적 배경" 꼬리질문 버튼 클릭 처리 메서드
   const handleHistoricalBackground = (title) => {
     sendMessage(`${title}의 역사적 배경에 대해 알려줘`);
   };
 
+  // "목적지로 설정" 꼬리질문 버튼 클릭 처리 메서드
   const handleSetDestination = async (title) => {
     const heritage = await findHeritage(title);
     if (heritage) {
-      setDestination(heritage); // 목적지로 설정
+      setDestination(heritage); // 해당 유적지를 목적지로 설정
       navigation.navigate("Home", { screen: "길찾기" }); // 길찾기 화면으로 전환
       Toast.show({
         type: "success",
@@ -100,20 +121,30 @@ export default function ChatbotScreen() {
     }
   };
 
+  // 챗봇 메시지 전송 메서드
   const sendMessage = async (text, skipFetch = false) => {
+    // text: 사용자가 입력한 메시지
+    // skipFetch: API 호출을 건너뛸지 여부 (true면 서버에 요청 안 함)
+
+    // 사용자가 입력한 메시지가 없거나 위치 정보가 없으면 종료
     if (!text || !userLocation) return;
 
+    // 사용자 메시지를 채팅 목록에 추가
     const userMessage = { text, from: "user" };
     setMessages((prev) => [...prev, userMessage]);
 
+    // 사용자 입력 필드 초기화
     setInputText("");
 
-    if (skipFetch) return; // API 호출 스킵이 true면 여기서 종료
+    // API 호출 스킵이 true면 여기서 종료  (사용자 메시지만 화면에 추가하고 서버 요청 X)
+    if (skipFetch) return;
 
+    // 로딩 상태 설정 및 사용자 입력창 placeholder 변경
     setIsLoading(true);
     setMessages((prev) => [...prev, { from: "bot", loading: true }]);
     setPlaceholder(getRandomPlaceholder());
 
+    // 토큰 유효성 검사
     if (!accessToken) {
       console.warn("context: 토큰 없음 → 요청 중단");
       const botMessage = {
@@ -126,6 +157,7 @@ export default function ChatbotScreen() {
     }
 
     try {
+      // 서버에 챗봇 요청 전송
       const res = await fetch("http://" + IP_ADDRESS + ":8080/api/chatbot", {
         method: "POST",
         headers: {
@@ -140,6 +172,8 @@ export default function ChatbotScreen() {
 
       const result = await res.json();
       console.log(result);
+
+      // 챗봇 응답 메시지 생성
       const botMessage = {
         text: result?.data?.answer || "알 수 없는 응답입니다.",
         from: "bot",
@@ -148,6 +182,7 @@ export default function ChatbotScreen() {
       setMessages((prev) => [...prev.slice(0, -1), botMessage]);
     } catch (e) {
       console.error("챗봇 요청 실패:", e);
+      // 에러 메시지 표시
       setMessages((prev) => [
         ...prev.slice(0, -1),
         { text: "오류가 발생했습니다.", from: "bot" },
@@ -157,6 +192,7 @@ export default function ChatbotScreen() {
     }
   };
 
+  // "장바구니에 추가" 꼬리질문 버튼 클릭 처리 메서드
   const handleAddVia = async (title) => {
     // 사용자 메시지 추가 (API 호출 스킵)
     sendMessage(`${title}를 장바구니에 추가해줘`, true);
@@ -164,6 +200,7 @@ export default function ChatbotScreen() {
     // 유적지 검색 및 장바구니 추가
     const heritage = await findHeritage(title);
     if (heritage) {
+      // 장바구니에 유적지 추가
       const added = await addStopover(heritage);
       // 챗봇 응답 메시지 직접 추가
       setMessages((prev) => [
@@ -176,7 +213,7 @@ export default function ChatbotScreen() {
         },
       ]);
     } else {
-      // 챗봇 응답 메시지 직접 추가
+      // 유적지를 찾을 수 없는 경우 에러 메시지 추가
       setMessages((prev) => [
         ...prev,
         {
@@ -187,30 +224,27 @@ export default function ChatbotScreen() {
     }
   };
 
+  // 초기 메시지 처리 (다른 화면에서 챗봇 화면으로 넘어온 경우 초기 메시지 전달)
   useEffect(() => {
     if (route.params?.initialMessage) {
       sendMessage(route.params.initialMessage);
     }
   }, [route.params]);
 
-  // 오디오 설정
+  // 오디오 설정 메서드
   const setupAudio = async () => {
     try {
+      // iOS/Android 오디오 모드 설정
       await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: false,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
+        playsInSilentModeIOS: true, // 무음 모드에서도 재생 (for iOS)
       });
     } catch (error) {
       console.error("오디오 설정 실패:", error);
     }
   };
 
-  // TTS 재생
+  // TTS 재생 메서드
   const playTTS = async (text) => {
-    console.log("playTTS 호출");
     try {
       // 이미 재생 중인 경우 중지
       if (sound) {
@@ -218,19 +252,20 @@ export default function ChatbotScreen() {
         setSound(null);
         setIsPlaying(false);
 
-        // 같은 텍스트를 다시 클릭한 경우 재생 중지로 처리
+        // 같은 응답의 TTS 재생 버튼을 다시 클릭한 경우 재생 중지로 처리
         if (currentPlayingText === text) {
           setCurrentPlayingText(null);
           return;
         }
       }
 
+      // 현재 재생 텍스트 설정
       setCurrentPlayingText(text);
 
       // 오디오 설정
       await setupAudio();
 
-      // API 요청
+      // TTS API 요청
       const response = await fetch(
         "http://" +
           IP_ADDRESS +
@@ -267,7 +302,7 @@ export default function ChatbotScreen() {
       setSound(newSound);
       setIsPlaying(true);
 
-      // 재생 완료 시 콜백
+      // 재생 완료 시 콜백 설정
       newSound.setOnPlaybackStatusUpdate((status) => {
         if (status.didJustFinish) {
           setIsPlaying(false);
@@ -285,7 +320,7 @@ export default function ChatbotScreen() {
     }
   };
 
-  // 컴포넌트 언마운트 시 정리
+  // 컴포넌트 언마운트 시 오디오 정리
   useEffect(() => {
     return () => {
       if (sound) {
@@ -294,15 +329,17 @@ export default function ChatbotScreen() {
     };
   }, [sound]);
 
-  // 설정 불러오기 - useEffect 대신 useFocusEffect 사용
+  // 챗봇 화면 포커스 시 기존 TTS 설정 불러오기
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       loadSettings();
     }, [])
   );
 
+  // AsyncStorage에서 설정 불러오기 메서드
   const loadSettings = async () => {
     try {
+      // 자동 TTS 재생 설정 불러오기
       const value = await AsyncStorage.getItem("chatbot_auto_tts");
       setIsAutoTTSEnabled(value === "true");
     } catch (error) {
@@ -313,6 +350,7 @@ export default function ChatbotScreen() {
   // 챗봇 응답이 왔을 때 자동 TTS 재생
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
+    // 자동 TTS 재생 설정이 활성화되고 챗봇 응답이 완료된 경우 자동 재생
     if (
       isAutoTTSEnabled &&
       lastMessage?.from === "bot" &&
@@ -322,12 +360,14 @@ export default function ChatbotScreen() {
     }
   }, [messages, isAutoTTSEnabled]);
 
-  // 설정 화면으로 이동
+  // 설정 화면으로 이동 메서드
   const handleSettingsPress = () => {
     navigation.navigate("ChatbotConfig");
   };
 
+  // 메시지 렌더링 함수
   const renderMessage = ({ item }) => {
+    // 로딩 중인 챗봇 메시지 표시
     if (item.from === "bot" && item.loading) {
       return (
         <View style={[styles.message, styles.bot]}>
@@ -339,6 +379,7 @@ export default function ChatbotScreen() {
     return (
       <View>
         {item.from === "bot" ? (
+          // 챗봇 메시지 (TTS 버튼 포함)
           <View style={styles.botMessageContainer}>
             <View style={[styles.message, styles.bot]}>
               <Text style={styles.botMessageText}>{item.text}</Text>
@@ -360,11 +401,12 @@ export default function ChatbotScreen() {
             </TouchableOpacity>
           </View>
         ) : (
+          // 사용자 메시지
           <View style={[styles.message, styles.user]}>
             <Text style={styles.messageText}>{item.text}</Text>
           </View>
         )}
-        {/* 챗봇 응답에 title이 있을 경우에만 액션 버튼 표시 */}
+        {/* 챗봇 응답에 title이 있을 경우 == 특정 유적지에 대한 답변일 경우 꼬리 질문 버튼 표시 */}
         {item.from === "bot" && item.title && (
           <View style={styles.actionButtons}>
             <TouchableOpacity
@@ -393,6 +435,7 @@ export default function ChatbotScreen() {
 
   return (
     <View style={styles.container}>
+      {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -411,6 +454,7 @@ export default function ChatbotScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* 메시지 목록 */}
       <FlatList
         data={messages}
         renderItem={renderMessage}
@@ -418,6 +462,7 @@ export default function ChatbotScreen() {
         contentContainerStyle={styles.chatArea}
       />
 
+      {/* 입력 영역 */}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
@@ -437,6 +482,7 @@ export default function ChatbotScreen() {
   );
 }
 
+// 스타일 정의
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.bluegray },
   header: {

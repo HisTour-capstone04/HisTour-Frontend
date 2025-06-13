@@ -1,16 +1,23 @@
-// UserLocationContext.js (Expo Go 테스트용 - 일단은 백그라운드 추적 제외...)
 import React, { createContext, useContext, useEffect, useState } from "react";
-import * as Location from "expo-location";
-import * as TaskManager from "expo-task-manager";
 
+// 외부 라이브러리 import
+import * as Location from "expo-location";
+
+// 사용자 위치 컨텍스트 생성
 const UserLocationContext = createContext();
 
-// 최소 위치 변경 거리 (미터)
-const MIN_DISTANCE_CHANGE = 5;
+// 위치 추적 관련 상수
+const MIN_DISTANCE_CHANGE = 5; // 최소 위치 변경 거리 (m) - 사용자가 5m 이상 이동했을 때만 위치 업데이트
 
+/**
+ * 사용자 위치 프로바이더 컴포넌트
+ * 주요 기능:
+ * 1. 사용자 현재 위치 실시간 추적 및 관리
+ * 2. 위치 권한 요청 및 상태 관리
+ */
 export function UserLocationProvider({ children }) {
-  const [userLocation, setUserLocation] = useState(null);
-  const [locationPermission, setLocationPermission] = useState(true);
+  const [userLocation, setUserLocation] = useState(null); // 사용자 현재 위치
+  const [locationPermission, setLocationPermission] = useState(true); // 위치 권한 상태
 
   // 거리 계산 함수 (Haversine 공식)
   const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -42,6 +49,7 @@ export function UserLocationProvider({ children }) {
     try {
       console.log("위치 권한 요청 시작");
 
+      // foreground 위치 권한 요청
       const foreground = await Location.requestForegroundPermissionsAsync();
       if (!foreground.granted) {
         console.warn("foreground 위치 권한 거부됨");
@@ -59,17 +67,17 @@ export function UserLocationProvider({ children }) {
     }
   };
 
-  // 이전 위치 저장용
-  let lastLocation = null;
-  let lastUpdateTime = 0;
+  // 이전 위치 저장용 변수
+  let lastLocation = null; // 마지막으로 저장된 위치
+  let lastUpdateTime = 0; // 마지막 업데이트 시간
 
   // foreground 위치 추적 메서드
   const startForegroundWatching = async () => {
     return await Location.watchPositionAsync(
       {
-        accuracy: Location.Accuracy.Balanced, // 배터리 소모와 정확도의 균형
-        timeInterval: 3000, // 3초마다 확인
-        distanceInterval: 5, // 5m 이상 움직였을 때만 이벤트 발생
+        accuracy: Location.Accuracy.High,
+        timeInterval: 3000, // 3초마다 위치 업데이트
+        distanceInterval: 5, // 5m 이상 움직였을 때만 위치 업데이트
       },
       (location) => {
         const { latitude, longitude } = location.coords;
@@ -96,7 +104,7 @@ export function UserLocationProvider({ children }) {
           longitude
         );
 
-        // 최소 거리 이상 이동했고, 마지막 업데이트로부터 1초 이상 지났을 때만 업데이트
+        // 최소 거리 이상 이동했고, 마지막 업데이트로부터 1초 이상 지났을 때만 위치 업데이트
         if (
           distance >= MIN_DISTANCE_CHANGE &&
           currentTime - lastUpdateTime >= 1000
@@ -110,15 +118,17 @@ export function UserLocationProvider({ children }) {
     );
   };
 
-  // 처음 mount 될 때 실행됨
+  // 위치 추적 초기화
   useEffect(() => {
     let watcher;
 
     const setupLocationTracking = async () => {
+      // 위치 권한 요청
       const granted = await requestLocationPermission();
       if (!granted) return;
 
       try {
+        // 위치 추적 시작
         watcher = await startForegroundWatching();
       } catch (error) {
         console.error("위치 추적 시작 실패:", error);
@@ -127,6 +137,7 @@ export function UserLocationProvider({ children }) {
 
     setupLocationTracking();
 
+    // cleanup: 위치 추적 중지
     return () => {
       if (watcher) {
         watcher.remove();
@@ -135,10 +146,17 @@ export function UserLocationProvider({ children }) {
   }, []);
 
   return (
-    <UserLocationContext.Provider value={{ userLocation, locationPermission }}>
+    <UserLocationContext.Provider
+      value={{
+        // 위치 상태
+        userLocation,
+        locationPermission,
+      }}
+    >
       {children}
     </UserLocationContext.Provider>
   );
 }
 
+// 사용자 위치 컨텍스트 사용을 위한 커스텀 훅
 export const useUserLocation = () => useContext(UserLocationContext);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useContext } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
@@ -8,19 +8,26 @@ import {
   Image,
   Modal,
   Dimensions,
-  Pressable,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+
+// 외부 라이브러리 import
 import Toast from "react-native-toast-message";
+
+// 내부 컨텍스트 및 유틸리티 import
 import { useUserLocation } from "../../../contexts/UserLocationContext";
 import { useHeritages } from "../../../contexts/HeritageContext";
 import { useRoute } from "../../../contexts/RouteContext";
-import { useNavigation } from "@react-navigation/native";
 import { useVia } from "../../../contexts/ViaContext.js";
 import { useBookmark } from "../../../contexts/BookmarkContext.js";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { theme } from "../../../theme/colors";
 
+/**
+ * 근처 유적지 정보 패널 컴포넌트
+ * 주요 기능: 사용자 현재 위치 기준 설정한 range 내에 있는 유적지 목록 표시 (사용자와의 거리순 정렬)
+ */
 export default function NearbyPanel() {
   const { heritages, getDistance, isLoading } = useHeritages();
   const { userLocation } = useUserLocation();
@@ -29,23 +36,28 @@ export default function NearbyPanel() {
   const { bookmarks, addBookmark, removeBookmark } = useBookmark();
   const { isLoggedIn } = useContext(AuthContext);
   const navigation = useNavigation();
-  const [expandedIds, setExpandedIds] = useState([]);
-  const [expandedAddresses, setExpandedAddresses] = useState([]);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
-  const [currentHeritageImages, setCurrentHeritageImages] = useState([]);
 
+  // UI 상태 관리
+  const [expandedIds, setExpandedIds] = useState([]); // 확장된 유적지 설명 ID 목록
+  const [expandedAddresses, setExpandedAddresses] = useState([]); // 확장된 유적지 주소 ID 목록
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null); // 선택된 이미지 인덱스
+  const [currentHeritageImages, setCurrentHeritageImages] = useState([]); // 현재 유적지 이미지 목록
+
+  // 유적지 설명 확장/축소 토글 메서드
   const toggleDescription = (id) => {
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 유적지 주소 확장/축소 토글 메서드
   const toggleAddress = (id) => {
     setExpandedAddresses((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 사용자 위치 기준으로 유적지를 거리순으로 정렬 (가까운 순서대로)
   const sortedHeritages = [...heritages].sort((a, b) => {
     if (!userLocation) return 0;
     const distanceA = getDistance(userLocation, {
@@ -59,6 +71,7 @@ export default function NearbyPanel() {
     return distanceA - distanceB;
   });
 
+  // 로그인하지 않은 경우 로그인 안내 화면 표시
   if (!isLoggedIn) {
     return (
       <View style={styles.container}>
@@ -82,11 +95,13 @@ export default function NearbyPanel() {
 
   return (
     <View style={styles.container}>
+      {/* 근처 유적지 목록 스크롤 */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={[styles.contentContainer, { paddingTop: 0 }]}
         showsVerticalScrollIndicator={false}
       >
+        {/* 패널 헤더 */}
         <View style={[styles.header, { marginHorizontal: -20 }]}>
           {isLoading ? (
             <Text style={styles.loadingText}>유적지를 불러오고 있어요...</Text>
@@ -106,6 +121,8 @@ export default function NearbyPanel() {
             </Text>
           )}
         </View>
+
+        {/* 근처 유적지 목록 렌더링 */}
         {sortedHeritages.map((heritage, index) => {
           const isExpanded = expandedIds.includes(heritage.id);
           const maxLength = 100; // 최대 표시 글자 수
@@ -118,8 +135,12 @@ export default function NearbyPanel() {
 
           return (
             <React.Fragment key={heritage.id}>
+              {/* 개별 유적지 아이템 */}
               <View style={styles.itemContainer}>
+                {/* 유적지 이름 */}
                 <Text style={styles.name}>{heritage.name}</Text>
+
+                {/* 유적지 주소 (20자 이상일 경우 일부만 표시, 확장 가능) */}
                 <View style={styles.locationContainer}>
                   <Text style={styles.distance}>
                     {userLocation
@@ -154,6 +175,8 @@ export default function NearbyPanel() {
                     </TouchableOpacity>
                   )}
                 </View>
+
+                {/* 유적지 설명 (100자 이상일 경우 일부만 표시, 확장 가능) */}
                 <Text style={[styles.description]}>
                   {isExpanded
                     ? heritage.description
@@ -173,6 +196,7 @@ export default function NearbyPanel() {
                   )}
                 </Text>
 
+                {/* 유적지 이미지 갤러리 */}
                 {heritage.imageUrls?.length > 0 && (
                   <ScrollView
                     horizontal
@@ -193,8 +217,11 @@ export default function NearbyPanel() {
                   </ScrollView>
                 )}
 
+                {/* 액션 버튼들 */}
                 <View style={styles.buttonRow}>
+                  {/* 왼쪽 버튼들 (북마크, 장바구니 추가) */}
                   <View style={styles.leftButtons}>
+                    {/* 북마크 버튼 */}
                     <TouchableOpacity
                       style={styles.iconButton}
                       onPress={() => {
@@ -219,6 +246,7 @@ export default function NearbyPanel() {
                       />
                     </TouchableOpacity>
 
+                    {/* 장바구니 추가 버튼 */}
                     <TouchableOpacity
                       style={styles.iconButton}
                       onPress={async () => {
@@ -240,7 +268,9 @@ export default function NearbyPanel() {
                     </TouchableOpacity>
                   </View>
 
+                  {/* 오른쪽 버튼들 (출발지, 목적지, 챗봇) */}
                   <View style={styles.rightButtons}>
+                    {/* 출발지 설정 버튼 */}
                     <TouchableOpacity
                       style={styles.blueButton}
                       onPress={() => {
@@ -258,6 +288,7 @@ export default function NearbyPanel() {
                       <Text style={styles.buttonText}>출발</Text>
                     </TouchableOpacity>
 
+                    {/* 목적지 설정 버튼 */}
                     <TouchableOpacity
                       style={styles.blueButton}
                       onPress={() => {
@@ -272,6 +303,7 @@ export default function NearbyPanel() {
                       <Text style={styles.buttonText}>도착</Text>
                     </TouchableOpacity>
 
+                    {/* 챗봇 연동 버튼 */}
                     <TouchableOpacity
                       style={styles.chatButton}
                       onPress={() => {
@@ -289,10 +321,13 @@ export default function NearbyPanel() {
                   </View>
                 </View>
               </View>
+
+              {/* 구분선 (마지막 항목 제외) */}
               {index < sortedHeritages.length - 1 && (
                 <View style={styles.divider} />
               )}
 
+              {/* 이미지 모달 */}
               <Modal
                 visible={selectedImageIndex !== null}
                 transparent={true}
@@ -303,6 +338,7 @@ export default function NearbyPanel() {
               >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContainer}>
+                    {/* 모달 닫기 버튼 */}
                     <TouchableOpacity
                       style={styles.closeButton}
                       onPress={() => {
@@ -315,9 +351,12 @@ export default function NearbyPanel() {
                       </View>
                     </TouchableOpacity>
 
+                    {/* 이미지 컨테이너 */}
                     <View style={styles.imageContainer}>
+                      {/* 이미지가 2개 이상인 경우 네비게이션 버튼 표시 */}
                       {currentHeritageImages.length > 1 && (
                         <>
+                          {/* 이전 이미지 버튼 */}
                           <TouchableOpacity
                             style={[
                               styles.navigationButton,
@@ -337,6 +376,7 @@ export default function NearbyPanel() {
                             />
                           </TouchableOpacity>
 
+                          {/* 다음 이미지 버튼 */}
                           <TouchableOpacity
                             style={[
                               styles.navigationButton,
@@ -364,6 +404,7 @@ export default function NearbyPanel() {
                         </>
                       )}
 
+                      {/* 선택된 이미지 표시 */}
                       <Image
                         source={{
                           uri: currentHeritageImages[selectedImageIndex],
@@ -373,6 +414,7 @@ export default function NearbyPanel() {
                       />
                     </View>
 
+                    {/* 이미지 카운터 (2개 이상인 경우) */}
                     {currentHeritageImages.length > 1 && (
                       <View style={styles.imageCounter}>
                         <Text style={styles.imageCounterText}>

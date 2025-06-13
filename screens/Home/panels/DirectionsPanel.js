@@ -7,19 +7,22 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
-  Alert,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
-import { useUserLocation } from "../../../contexts/UserLocationContext";
-import { TMAP_APP_KEY, IP_ADDRESS } from "../../../config/apiKeys";
-import { theme } from "../../../theme/colors";
 
+// 내부 컨텍스트 및 유틸리티 import
+import { TMAP_APP_KEY } from "../../../config/apiKeys";
+import { theme } from "../../../theme/colors";
 import { useRouteMode } from "../../../contexts/RouteModeContext.js";
 import { useVia } from "../../../contexts/ViaContext.js";
 import { useRoute } from "../../../contexts/RouteContext";
 
+/**
+ * 길찾기 패널 컴포넌트
+ * 주요 기능
+ * 1. 출발지 -> (경유지) -> 목적지까지의 경로 안내 (자동차, 대중교통, 도보)
+ * 2. 장바구니 유적지 목록 관리
+ */
 export default function DirectionsPanel() {
   const {
     startPoint,
@@ -28,30 +31,30 @@ export default function DirectionsPanel() {
     routeData,
     setRouteData,
     routePoints,
-    setRoutePoints,
-    reorderPoints,
-    removePoint,
     addVia,
   } = useRoute();
 
   const { stopovers, removeStopover } = useVia();
   const { routeMode, setRouteMode } = useRouteMode();
 
-  const [selectedIndex, setSelectedIndex] = useState(null);
-  const [selectedItinerary, setSelectedItinerary] = useState(null);
+  // 대중교통 경로 선택 상태
+  const [selectedIndex, setSelectedIndex] = useState(null); // 선택된 대중교통 경로 인덱스 (1~3번째)
+  const [selectedItinerary, setSelectedItinerary] = useState(null); // 선택된 대중교통 경로 정보
 
+  // 로딩 상태
   const [carLoading, setCarLoading] = useState(false);
   const [transitLoading, setTransitLoading] = useState(false);
   const [walkLoading, setWalkLoading] = useState(false);
 
+  // 총 소요 시간
   const [carTotalTime, setCarTotalTime] = useState(null);
   const [walkTotalTime, setWalkTotalTime] = useState(null);
 
-  const { userLocation } = useUserLocation();
+  // UI 확장 상태
+  const [expandedIds, setExpandedIds] = useState([]); // 확장된 유적지 설명 ID 목록 배열
+  const [expandedAddresses, setExpandedAddresses] = useState([]); // 확장된 유적지 주소 ID 목록 배열
 
-  const [expandedIds, setExpandedIds] = useState([]);
-  const [expandedAddresses, setExpandedAddresses] = useState([]);
-
+  // 교통수단 모드 라벨 및 아이콘 매핑
   const modeLabels = {
     car: "자동차",
     transit: "대중교통",
@@ -66,11 +69,12 @@ export default function DirectionsPanel() {
     via: "add",
   };
 
+  // 경유지 좌표 문자열 생성 (API 요청용)
   const passListStr = nowStopovers
     .map((p) => `${p.longitude},${p.latitude}`)
     .join("_");
 
-  // 소요시간 포맷팅
+  // 소요시간 포맷팅 메서드 (분 -> 시간)
   const formatDuration = (totalMinutes) => {
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -79,24 +83,25 @@ export default function DirectionsPanel() {
     return `${minutes}분`;
   };
 
-  // 거리 포맷팅
+  // 거리 포맷팅 메서드 (미터 -> km, m)
   const formatDistance = (meters) => {
     if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
     return `${Number(meters).toLocaleString()}m`;
   };
 
-  // 자동차 총 소요 시간 & 거리 계산 메서드
+  // 자동차 총 소요 시간 계산 메서드
   const getCarTotalTime = () =>
     typeof routeData?.features?.[0]?.properties?.totalTime === "number"
       ? routeData.features[0].properties.totalTime
       : 0;
 
+  // 자동차 총 거리 계산 메서드
   const getCarTotalDistance = () =>
     typeof routeData?.features?.[0]?.properties?.totalDistance === "number"
       ? routeData.features[0].properties.totalDistance
       : 0;
 
-  // 도보 총 소요 시간 & 거리 계산 메서드
+  // 도보 총 소요 시간 계산 메서드
   const getWalkTotalTime = () =>
     routeData?.features?.reduce((acc, cur) => {
       if (
@@ -108,6 +113,7 @@ export default function DirectionsPanel() {
       return acc;
     }, 0) || 0;
 
+  // 도보 총 거리 계산 메서드
   const getWalkTotalDistance = () =>
     routeData?.features?.reduce((acc, cur) => {
       if (
@@ -119,27 +125,23 @@ export default function DirectionsPanel() {
       return acc;
     }, 0) || 0;
 
-  // 대중교통
+  // 대중교통 경로 목록
   const itineraries = routeData?.metaData?.plan?.itineraries ?? [];
 
-  // 대중교통 도보 소요 시간
+  // 대중교통 도보 소요 시간 계산 메서드
   const getWalkingTime = (legs) => {
     return legs
       .filter((leg) => leg.mode === "WALK")
       .reduce((acc, leg) => acc + leg.sectionTime, 0);
   };
 
+  // 자동차 경로 API 요청 메서드
   const fetchCarRoute = async () => {
     if (!startPoint || !destination) return;
 
     setCarLoading(true);
 
     try {
-      console.log(
-        "자동차 : routePoints 순서 확인",
-        routePoints.map((p) => p.name)
-      );
-
       const formBody = new URLSearchParams({
         startX: String(startPoint.longitude),
         startY: String(startPoint.latitude),
@@ -163,17 +165,7 @@ export default function DirectionsPanel() {
       });
 
       const data = await response.json();
-      console.log("🚗 응답 요약:", {
-        hasFeatures: !!data.features,
-        error: data.error,
-        totalFeatures: data.features?.length,
-        firstFeature: data.features?.[0],
-        featureTypes: data.features?.map((f) => ({
-          type: f.geometry?.type,
-          pointType: f.properties?.pointType,
-          description: f.properties?.description,
-        })),
-      });
+
       setRouteData(data);
     } catch (e) {
       console.error("자동차 경로 요청 실패:", e);
@@ -182,16 +174,13 @@ export default function DirectionsPanel() {
     }
   };
 
+  // 도보 경로 API 요청 메서드
   const fetchWalkRoute = async () => {
     if (!startPoint || !destination) return;
 
     setWalkLoading(true);
 
     try {
-      console.log(
-        "도보: routePoints 순서 확인",
-        routePoints.map((p) => p.name)
-      );
       const formBody = new URLSearchParams({
         startX: String(startPoint.longitude),
         startY: String(startPoint.latitude),
@@ -218,17 +207,7 @@ export default function DirectionsPanel() {
       );
 
       const data = await response.json();
-      console.log("🚶‍♂️ 도보 응답 요약:", {
-        hasFeatures: !!data.features,
-        error: data.error,
-        totalFeatures: data.features?.length,
-        firstFeature: data.features?.[0],
-        featureTypes: data.features?.map((f) => ({
-          type: f.geometry?.type,
-          pointType: f.properties?.pointType,
-          description: f.properties?.description,
-        })),
-      });
+
       setRouteData(data);
     } catch (e) {
       console.error("도보 경로 요청 실패:", e);
@@ -237,6 +216,7 @@ export default function DirectionsPanel() {
     }
   };
 
+  // 대중교통 경로 API 요청 메서드
   const fetchTransitRoute = async () => {
     if (!startPoint || !destination) return;
 
@@ -272,10 +252,7 @@ export default function DirectionsPanel() {
       );
 
       const data = await response.json();
-      console.log(
-        "대중교통 경로 응답:",
-        data?.metaData?.plan?.itineraries?.length + "개의 경로"
-      );
+
       setRouteData(data);
     } catch (e) {
       console.error("대중교통 경로 요청 실패:", e);
@@ -284,6 +261,7 @@ export default function DirectionsPanel() {
     }
   };
 
+  // 교통수단 모드 변경 시 경로 요청
   useEffect(() => {
     if (routeMode === "car" && startPoint && destination) {
       fetchCarRoute();
@@ -296,6 +274,7 @@ export default function DirectionsPanel() {
     }
   }, [routeMode, routePoints]);
 
+  // 경로 데이터 변경 시 총 소요 시간 업데이트
   useEffect(() => {
     if (routeMode === "car" && routeData?.features?.[0]) {
       setCarTotalTime(routeData.features[0].properties.totalTime);
@@ -313,6 +292,7 @@ export default function DirectionsPanel() {
     }
   }, [routeData, routeMode]);
 
+  // 목적지 변경 시 총 소요 시간 초기화
   useEffect(() => {
     if (!destination) {
       setCarTotalTime(null);
@@ -322,12 +302,14 @@ export default function DirectionsPanel() {
 
   const ref = useRef(null);
 
+  // 유적지 설명 확장/축소 토글 메서드
   const toggleDescription = (id) => {
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 유적지 주소 확장/축소 토글 메서드
   const toggleAddress = (id) => {
     setExpandedAddresses((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
@@ -336,8 +318,10 @@ export default function DirectionsPanel() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* 모드 텍스트 */}
+      {/* 교통수단 모드 제목 */}
       <Text style={styles.modeTitle}>{modeLabels[routeMode]}</Text>
+
+      {/* 자동차 모드 요약 정보 */}
       {routeMode === "car" && destination && routeData && (
         <View style={styles.summaryRow}>
           <Text style={styles.summaryTime}>
@@ -348,6 +332,8 @@ export default function DirectionsPanel() {
           </Text>
         </View>
       )}
+
+      {/* 도보 모드 요약 정보 */}
       {routeMode === "walk" && destination && routeData && (
         <View style={styles.summaryRow}>
           <Text style={styles.summaryTime}>
@@ -358,7 +344,8 @@ export default function DirectionsPanel() {
           </Text>
         </View>
       )}
-      {/* 모드 선택 */}
+
+      {/* 교통수단 모드 선택 버튼들 */}
       <View style={styles.modeRow}>
         {Object.keys(modeLabels).map((modeKey) => (
           <TouchableOpacity
@@ -380,6 +367,7 @@ export default function DirectionsPanel() {
           </TouchableOpacity>
         ))}
       </View>
+
       {/* 구분선 */}
       <View style={styles.divider} />
       {/* 대중교통 모드 */}
@@ -396,7 +384,7 @@ export default function DirectionsPanel() {
           <ActivityIndicator size="large" style={{ marginVertical: 20 }} />
         ) : itineraries && itineraries.length > 0 ? (
           selectedIndex === null ? (
-            // 경로 목록
+            // 대중교통 경로 목록
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }}
@@ -437,11 +425,12 @@ export default function DirectionsPanel() {
               })}
             </ScrollView>
           ) : (
-            // 상세 경로 보기
+            // 대중교통 상세 경로 보기
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }}
             >
+              {/* 뒤로가기 버튼 */}
               <TouchableOpacity
                 onPress={() => {
                   setSelectedIndex(null);
@@ -459,6 +448,7 @@ export default function DirectionsPanel() {
                 <Text style={styles.backButton}>← 경로 목록으로</Text>
               </TouchableOpacity>
 
+              {/* 선택된 경로 요약 정보 */}
               <View style={styles.transitSummary}>
                 <Text style={styles.routeDescription}>
                   총 소요시간: {(selectedItinerary.totalTime / 60).toFixed(0)}분
@@ -476,6 +466,7 @@ export default function DirectionsPanel() {
 
               <View style={[styles.divider, { marginVertical: 15 }]} />
 
+              {/* 경로 상세 정보 */}
               {selectedItinerary.legs?.map((leg, idx) => (
                 <View key={idx}>
                   <View style={styles.transitLegInfo}>
@@ -519,7 +510,7 @@ export default function DirectionsPanel() {
             Tip: 가까운 거리는 걸어가볼까요?
           </Text>
         )
-      ) : // 도보
+      ) : // 도보 모드
       routeMode === "walk" ? (
         destination == null ? (
           <Text style={styles.emptyMessage}>
@@ -532,6 +523,7 @@ export default function DirectionsPanel() {
             style={{ flex: 1 }}
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }}
           >
+            {/* 도보 경로 상세 정보 */}
             {routeData.features
               .filter(
                 (feature) =>
@@ -554,7 +546,7 @@ export default function DirectionsPanel() {
           </ScrollView>
         ) : (
           <Text style={styles.routeInfo}>도보 경로 정보가 없습니다.</Text>
-        ) // 자동차
+        ) // 자동차 모드
       ) : routeMode === "car" ? (
         destination == null ? (
           <Text style={styles.emptyMessage}>
@@ -567,6 +559,7 @@ export default function DirectionsPanel() {
             style={{ flex: 1 }}
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }}
           >
+            {/* 자동차 경로 상세 정보 */}
             {routeData.features
               .filter(
                 (feature) =>
@@ -589,7 +582,7 @@ export default function DirectionsPanel() {
           </ScrollView>
         ) : (
           <Text style={styles.routeInfo}>자동차 경로 정보가 없습니다.</Text>
-        )
+        ) // 장바구니 모드
       ) : routeMode === "via" ? (
         stopovers.length === 0 ? (
           <Text style={styles.emptyMessage}>
@@ -601,7 +594,7 @@ export default function DirectionsPanel() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 30, marginTop: 10 }}
           >
-            {/* 기존 경유지 목록 */}
+            {/* 장바구니 유적지 목록 */}
             {stopovers.length > 0 && (
               <>
                 {stopovers.map((heritage) => {
@@ -617,6 +610,7 @@ export default function DirectionsPanel() {
 
                   return (
                     <View key={heritage.id} style={styles.card}>
+                      {/* 유적지 헤더 (이름 + 삭제 버튼) */}
                       <View style={styles.header}>
                         <Text style={styles.name}>
                           {heritage.name ||
@@ -633,6 +627,8 @@ export default function DirectionsPanel() {
                           />
                         </TouchableOpacity>
                       </View>
+
+                      {/* 유적지 주소 (20자 이상일 경우 일부만 표시, 확장 가능) */}
                       <View style={styles.addressContainer}>
                         <Text style={styles.address}>
                           {address &&
@@ -658,6 +654,8 @@ export default function DirectionsPanel() {
                           </TouchableOpacity>
                         )}
                       </View>
+
+                      {/* 유적지 설명 (100자 이상일 경우 일부만 표시, 확장 가능) */}
                       <Text style={styles.description}>
                         {isExpanded
                           ? description
@@ -676,6 +674,8 @@ export default function DirectionsPanel() {
                           </>
                         )}
                       </Text>
+
+                      {/* 경유지로 추가 버튼 */}
                       <TouchableOpacity
                         onPress={() => {
                           addVia(heritage);
@@ -700,6 +700,7 @@ export default function DirectionsPanel() {
   );
 }
 
+// 스타일 정의
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.bluegray,

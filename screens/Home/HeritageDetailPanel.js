@@ -1,4 +1,3 @@
-// HeritageDetailPanel.js
 import React, { useState, useContext, useEffect, useRef } from "react";
 import {
   View,
@@ -13,15 +12,20 @@ import {
   Modal,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+
+// 외부 라이브러리 import
 import Toast from "react-native-toast-message";
+
+// 내부 컨텍스트 및 유틸리티 import
 import { useRoute } from "../../contexts/RouteContext";
 import { useVia } from "../../contexts/ViaContext";
 import { useBookmark } from "../../contexts/BookmarkContext";
 import { theme } from "../../theme/colors";
-import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../../contexts/AuthContext";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
+
 // 패널 위치 상수
 const PANEL_POSITIONS = {
   TOP: SCREEN_HEIGHT * 0.2, // 20%
@@ -29,39 +33,54 @@ const PANEL_POSITIONS = {
   BOTTOM: SCREEN_HEIGHT * 0.82, // 82%
 };
 
-// 단일 유적지 상세 정보 컴포넌트
+/**
+ * 단일 유적지 상세 정보 컴포넌트 (패널 내부에서 사용)
+ *
+ * 주요 기능:
+ * 1. 유적지 기본 정보 표시 (이름, 주소, 설명)
+ * 2. 북마크 추가/제거 버튼, 장바구니 추가 버튼
+ * 3. 경로 설정 (출발지/목적지) 버튼
+ * 4. 챗봇 연동 버튼
+ *
+ */
 const HeritageItem = ({ heritage, onClose }) => {
   const { setDestination, setRoutePoints } = useRoute();
   const { addStopover } = useVia();
   const { bookmarks, addBookmark, removeBookmark } = useBookmark();
   const { isLoggedIn } = useContext(AuthContext);
   const navigation = useNavigation();
-  const [expandedIds, setExpandedIds] = useState([]);
-  const [expandedAddresses, setExpandedAddresses] = useState([]);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
-  const [currentHeritageImages, setCurrentHeritageImages] = useState([]);
 
+  // UI 상태 관리
+  const [expandedIds, setExpandedIds] = useState([]); // 확장된 유적지 설명 ID 목록 배열
+  const [expandedAddresses, setExpandedAddresses] = useState([]); // 확장된 유적지 주소 ID 목록 배열
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null); // 선택된 이미지 인덱스
+  const [currentHeritageImages, setCurrentHeritageImages] = useState([]); // 현재 유적지 이미지 목록 배열
+
+  // 유적지 설명 확장/축소 토글 함수
   const toggleDescription = (id) => {
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 유적지 주소 확장/축소 토글 함수
   const toggleAddress = (id) => {
     setExpandedAddresses((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 유적지 설명 표시 관련 변수
   const maxLength = 100; // 최대 표시 글자 수
   const shouldShowMore =
     heritage.description && heritage.description.length > maxLength;
+
+  // 북마크 여부 확인
   const isBookmarked = bookmarks.some(
     (b) => b.id === heritage.id || b.heritageId === heritage.id
   );
 
-  const firstLine = heritage.description?.split("\n")[0] || "";
-
+  // 해당 유적지를 출발지로 설정하는 함수
   const setAsStart = () => {
     setRoutePoints((prev) => [
       heritage,
@@ -75,6 +94,7 @@ const HeritageItem = ({ heritage, onClose }) => {
     onClose();
   };
 
+  // 해당 유적지를 목적지로 설정하는 함수
   const setAsDestination = () => {
     setDestination(heritage);
     Toast.show({
@@ -87,7 +107,10 @@ const HeritageItem = ({ heritage, onClose }) => {
 
   return (
     <View style={styles.itemContainer}>
+      {/* 유적지 이름 */}
       <Text style={styles.name}>{heritage.name}</Text>
+
+      {/* 유적지 주소 (20자 이상일 경우 일부만 표시, 확장 가능) */}
       <View style={styles.locationContainer}>
         <Text style={styles.address}>
           {heritage.detailAddress.length > 20 &&
@@ -112,6 +135,8 @@ const HeritageItem = ({ heritage, onClose }) => {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* 유적지 설명 (100자 이상일 경우 일부만 표시, 확장 가능) */}
       <Text style={[styles.description]}>
         {expandedIds.includes(heritage.id)
           ? heritage.description
@@ -131,6 +156,7 @@ const HeritageItem = ({ heritage, onClose }) => {
         )}
       </Text>
 
+      {/* 유적지 이미지 갤러리 */}
       {heritage.imageUrls?.length > 0 && (
         <ScrollView
           horizontal
@@ -151,8 +177,11 @@ const HeritageItem = ({ heritage, onClose }) => {
         </ScrollView>
       )}
 
+      {/* 액션 버튼들 */}
       <View style={styles.buttonRow}>
+        {/* 왼쪽 버튼들 (북마크, 장바구니) */}
         <View style={styles.leftButtons}>
+          {/* 북마크 버튼 */}
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => {
@@ -176,6 +205,8 @@ const HeritageItem = ({ heritage, onClose }) => {
               color={isBookmarked ? theme.main_blue : theme.black}
             />
           </TouchableOpacity>
+
+          {/* 장바구니 추가 버튼 */}
           <TouchableOpacity
             style={styles.iconButton}
             onPress={async () => {
@@ -193,16 +224,22 @@ const HeritageItem = ({ heritage, onClose }) => {
           </TouchableOpacity>
         </View>
 
+        {/* 오른쪽 버튼들 (출발, 도착, 챗봇) */}
         <View style={styles.rightButtons}>
+          {/* 출발지 설정 버튼 */}
           <TouchableOpacity style={styles.blueButton} onPress={setAsStart}>
             <Text style={styles.buttonText}>출발</Text>
           </TouchableOpacity>
+
+          {/* 목적지 설정 버튼 */}
           <TouchableOpacity
             style={styles.blueButton}
             onPress={setAsDestination}
           >
             <Text style={styles.buttonText}>도착</Text>
           </TouchableOpacity>
+
+          {/* 챗봇 버튼 */}
           <TouchableOpacity
             style={styles.chatButton}
             onPress={() => {
@@ -216,6 +253,7 @@ const HeritageItem = ({ heritage, onClose }) => {
         </View>
       </View>
 
+      {/* 이미지 모달 뷰어 */}
       <Modal
         visible={selectedImageIndex !== null}
         transparent={true}
@@ -226,6 +264,7 @@ const HeritageItem = ({ heritage, onClose }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
+            {/* 닫기 버튼 */}
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => {
@@ -238,9 +277,12 @@ const HeritageItem = ({ heritage, onClose }) => {
               </View>
             </TouchableOpacity>
 
+            {/* 이미지 컨테이너 */}
             <View style={styles.imageContainer}>
+              {/* 이미지가 2개 이상일 때만 네비게이션 버튼 표시 */}
               {currentHeritageImages.length > 1 && (
                 <>
+                  {/* 이전 이미지 버튼 */}
                   <TouchableOpacity
                     style={[
                       styles.navigationButton,
@@ -256,6 +298,7 @@ const HeritageItem = ({ heritage, onClose }) => {
                     <Ionicons name="chevron-back" size={30} color="white" />
                   </TouchableOpacity>
 
+                  {/* 다음 이미지 버튼 */}
                   <TouchableOpacity
                     style={[
                       styles.navigationButton,
@@ -276,6 +319,7 @@ const HeritageItem = ({ heritage, onClose }) => {
                 </>
               )}
 
+              {/* 현재 이미지 */}
               <Image
                 source={{
                   uri: currentHeritageImages[selectedImageIndex],
@@ -285,6 +329,7 @@ const HeritageItem = ({ heritage, onClose }) => {
               />
             </View>
 
+            {/* 이미지 카운터 (이미지가 2개 이상일 때만 표시) */}
             {currentHeritageImages.length > 1 && (
               <View style={styles.imageCounter}>
                 <Text style={styles.imageCounterText}>
@@ -299,7 +344,21 @@ const HeritageItem = ({ heritage, onClose }) => {
   );
 };
 
-// 메인 패널 컴포넌트
+/**
+ * 슬라이드 패널 컴포넌트
+ *
+ * HeritageDetailPanel 패널이 표시되는 경우:
+ * 경우 1) 유적지 검색 결과 화면에서 특정 유적지를 클릭한 경우 (isFromMarkerClick = false)
+ * 경우 2) 지도 화면에서 특정 유적지 마커를 클릭한 경우 (isFromMarkerClick = true)
+ * 경우 3) 유적지 정보 푸시 알림을 클릭한 경우 (isFromNotification = true)
+ *
+ * 주요 기능:
+ * 1. 드래그를 통한 패널 위치 조절 (TOP/MIDDLE/BOTTOM)
+ * 2. 유적지 상세 정보 표시 (heritageItem 컴포넌트)
+ * 3. 단일/다중 유적지 지원 (단일 유적지인 경우 유적지 정보 표시, 다중 유적지인 경우 유적지 목록 표시)
+ * 4. 지도와 연동하여 해당 유적지 마커 표시 및 하이라이트 처리, 지도 중심 이동
+ *
+ */
 export default function HeritageDetailPanel({
   heritage,
   onClose,
@@ -307,24 +366,29 @@ export default function HeritageDetailPanel({
   isFromMarkerClick = false,
   panelAnim,
 }) {
-  const currentSlide = useRef(PANEL_POSITIONS.MIDDLE);
-  const dragStartPosition = useRef(PANEL_POSITIONS.MIDDLE);
+  const currentSlide = useRef(PANEL_POSITIONS.MIDDLE); // 패널 위치 값
+  const dragStartPosition = useRef(PANEL_POSITIONS.MIDDLE); // 드래그 시작 위치 값
 
+  // 패널 애니메이션 값 리스너
   panelAnim.addListener(({ value }) => {
     currentSlide.current = value;
   });
 
+  // 드래그 제스처 핸들러 생성
   const panResponder = useRef(
     PanResponder.create({
+      // 드래그 시작 조건 (수직 이동 10px 이상)
       onMoveShouldSetPanResponder: (_, gestureState) => {
         return Math.abs(gestureState.dy) > 10;
       },
+
+      // 드래그 시작 시 현재 위치 저장
       onPanResponderGrant: () => {
-        // 드래그 시작할 때 현재 위치 저장
         dragStartPosition.current = currentSlide.current;
       },
+
+      // 드래그 중 실시간 위치 업데이트
       onPanResponderMove: (_, gestureState) => {
-        // 드래그 중에는 자유롭게 움직이되, 범위 제한
         const newValue = dragStartPosition.current + gestureState.dy;
         panelAnim.setValue(
           Math.min(
@@ -333,10 +397,12 @@ export default function HeritageDetailPanel({
           )
         );
       },
+
+      // 드래그 종료 시 스냅 애니메이션
       onPanResponderRelease: (_, gestureState) => {
         const currentPosition = currentSlide.current;
 
-        // 현재 어느 위치에 가장 가까운지 판단
+        // 현재 위치가 어느 상태에 가장 가까운지 판단
         let currentState;
         if (
           currentPosition <=
@@ -354,7 +420,7 @@ export default function HeritageDetailPanel({
 
         let nextPosition;
 
-        // 아래로 드래그 (dy > 50)
+        // 아래로 드래그 (dy > 50) - 패널을 아래로 이동
         if (gestureState.dy > 50) {
           switch (currentState) {
             case "TOP":
@@ -368,7 +434,7 @@ export default function HeritageDetailPanel({
               break;
           }
         }
-        // 위로 드래그 (dy < -50)
+        // 위로 드래그 (dy < -50) - 패널을 위로 이동
         else if (gestureState.dy < -50) {
           switch (currentState) {
             case "TOP":
@@ -396,6 +462,7 @@ export default function HeritageDetailPanel({
           );
         }
 
+        // 스프링 애니메이션으로 부드럽게 이동
         Animated.spring(panelAnim, {
           toValue: nextPosition,
           useNativeDriver: false,
@@ -406,19 +473,20 @@ export default function HeritageDetailPanel({
     })
   ).current;
 
+  // 유적지 정보가 변경될 때 지도 연동 처리
   useEffect(() => {
     if (!heritage || !webViewRef?.current) return;
 
-    // 알림에서 온 경우
+    // 유적지 정보 푸시 알림에서 경우 별도 지도 연동 없음 (경우 3)
     if (heritage.isFromNotification && heritage.heritages) {
-      console.log("알림에서 옴");
-
       return;
     }
 
-    // 마커 클릭이 아닌 경우(검색 등)에만 지도 중심 이동
+    // 검색 결과에서 온 경우 (경우 1)
     if (!isFromMarkerClick) {
       console.log("검색 화면에서 옴");
+
+      // 지도 중심을 해당 유적지 위치로 이동
       webViewRef.current.postMessage(
         JSON.stringify({
           type: "RECENTER_TO_COORD",
@@ -441,8 +509,13 @@ export default function HeritageDetailPanel({
           },
         })
       );
-    } else {
+    }
+
+    // 마커 클릭에서 온 경우 (경우 2)
+    else {
       console.log("화면 클릭에서 옴");
+
+      // 해당 유적지 마커 하이라이트
       webViewRef.current.postMessage(
         JSON.stringify({
           type: "HIGHLIGHT_HERITAGE_MARKER",
@@ -456,25 +529,26 @@ export default function HeritageDetailPanel({
     }
   }, [heritage, isFromMarkerClick]);
 
-  // 창 닫히면 해당 유적지 마커 제거 (검색 결과에서 온 경우에만)
+  // 컴포넌트 언마운트 시 마커 정리
   useEffect(() => {
     return () => {
+      // 푸시 알림에서 온 경우 마커 정리 불필요 (경우 3)
       if (heritage.isFromNotification) {
         return;
       }
 
       if (webViewRef?.current && heritage) {
+        // 검색 결과에서 온 경우 표시했던 마커 제거 (경우 1)
         if (!isFromMarkerClick) {
-          // 검색 결과에서 온 경우 마커 제거
-
           webViewRef.current.postMessage(
             JSON.stringify({
               type: "HIDE_SINGLE_MARKER",
               payload: { id: heritage.id || heritage.heritages?.[0]?.id },
             })
           );
-        } else {
-          // 마커 클릭에서 온 경우 하이라이트 마커 제거
+        }
+        // 마커 클릭에서 온 경우 하이라이트 마커 제거 (경우 2)
+        else {
           webViewRef.current.postMessage(
             JSON.stringify({
               type: "REMOVE_HERITAGE_HIGHLIGHT",
@@ -491,25 +565,27 @@ export default function HeritageDetailPanel({
     };
   }, [heritage, isFromMarkerClick, webViewRef]);
 
-  // 단일 유적지인 경우와 여러 유적지인 경우를 구분
-  const heritages = heritage.heritages || [heritage];
+  const heritages = heritage.heritages || [heritage]; // 단일 유적지인 경우와 여러 유적지인 경우를 구분
 
-  if (!heritage) return null;
+  if (!heritage) return null; // 유적지 정보가 없으면 렌더링 X
 
   return (
     <View style={styles.wrapper}>
+      {/* 패널 헤더 */}
       <View style={styles.header}>
         {/* 드래그 가능 영역 */}
         <View style={styles.dragZone} {...panResponder.panHandlers} />
 
-        {/* 핸들 */}
+        {/* 드래그 핸들 */}
         <View style={styles.panelHandle} />
 
+        {/* 닫기 버튼 */}
         <TouchableOpacity onPress={onClose} style={styles.fixedClose}>
           <Ionicons name="close" size={24} color={theme.black} />
         </TouchableOpacity>
       </View>
 
+      {/* 유적지 목록 스크롤 */}
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.contentContainer}
@@ -526,6 +602,7 @@ export default function HeritageDetailPanel({
   );
 }
 
+// 스타일 정의
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,

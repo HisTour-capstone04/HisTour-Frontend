@@ -1,12 +1,22 @@
-import React, { useEffect, useRef, useState, forwardRef } from "react";
+import React, { useEffect, forwardRef } from "react";
+
+// 외부 라이브러리 import
 import { WebView } from "react-native-webview";
+
+// 내부 모듈 import
 import { useUserLocation } from "../contexts/UserLocationContext";
 import { useHeritages } from "../contexts/HeritageContext";
-import { TMAP_APP_KEY } from "../config/apiKeys";
 import { useRoute } from "../contexts/RouteContext";
 import { useRouteMode } from "../contexts/RouteModeContext";
 import { useBookmark } from "../contexts/BookmarkContext";
 
+// 서버 주소 상수
+import { TMAP_APP_KEY } from "../config/apiKeys";
+
+/**
+ * 지도 웹뷰 컴포넌트
+ * 주요 기능 : 지도 표시 및 지도 상에 사용자 마커, 반경 원, 유적지 마커, 경로 그리기, 지도 중심 변경 등
+ */
 export default forwardRef(function MapWebView({ range, onMessage }, ref) {
   const { userLocation } = useUserLocation();
   const { heritages } = useHeritages();
@@ -21,7 +31,7 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
     }
   }, [ref.current]);
 
-  // 북마크 마커 표시
+  // 북마크 목록이 변경될 때마다 북마크 마커 표시 업데이트
   useEffect(() => {
     if (ref.current && bookmarks?.length > 0) {
       ref.current.postMessage(
@@ -219,6 +229,7 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
               window.ReactNativeWebView.postMessage(JSON.stringify({ type: "REQUEST_LOCATION" }));
             }
 
+            // 아이콘 이미지들
             const USER_MARKER_ICON = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzQwIiBoZWlnaHQ9Ijc0MCIgdmlld0JveD0iMCAwIDc0MCA3NDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGZpbHRlcj0idXJsKCNmaWx0ZXIwX2RfMjY2XzEyMjApIj4KPGNpcmNsZSBjeD0iMzcwIiBjeT0iMzcwIiByPSIzMDAiIGZpbGw9IiNGMDNENUIiLz4KPGNpcmNsZSBjeD0iMzcwIiBjeT0iMzcwIiByPSIyNjAiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iODAiLz4KPC9nPgo8ZGVmcz4KPGZpbHRlciBpZD0iZmlsdGVyMF9kXzI2Nl8xMjIwIiB4PSIwIiB5PSIwIiB3aWR0aD0iNzQwIiBoZWlnaHQ9Ijc0MCIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPgo8ZmVGbG9vZCBmbG9vZC1vcGFjaXR5PSIwIiByZXN1bHQ9IkJhY2tncm91bmRJbWFnZUZpeCIvPgo8ZmVDb2xvck1hdHJpeCBpbj0iU291cmNlQWxwaGEiIHR5cGU9Im1hdHJpeCIgdmFsdWVzPSIwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAxMjcgMCIgcmVzdWx0PSJoYXJkQWxwaGEiLz4KPGZlTW9ycGhvbG9neSByYWRpdXM9IjIwIiBvcGVyYXRvcj0iZGlsYXRlIiBpbj0iU291cmNlQWxwaGEiIHJlc3VsdD0iZWZmZWN0MV9kcm9wU2hhZG93XzI2Nl8xMjIwIi8+CjxmZU9mZnNldC8+CjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjI1Ii8+CjxmZUNvbXBvc2l0ZSBpbjI9ImhhcmRBbHBoYSIgb3BlcmF0b3I9Im91dCIvPgo8ZmVDb2xvck1hdHJpeCB0eXBlPSJtYXRyaXgiIHZhbHVlcz0iMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMC4yNSAwIi8+CjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW4yPSJCYWNrZ3JvdW5kSW1hZ2VGaXgiIHJlc3VsdD0iZWZmZWN0MV9kcm9wU2hhZG93XzI2Nl8xMjIwIi8+CjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iZWZmZWN0MV9kcm9wU2hhZG93XzI2Nl8xMjIwIiByZXN1bHQ9InNoYXBlIi8+CjwvZmlsdGVyPgo8L2RlZnM+Cjwvc3ZnPgo=";
 
             const DEFAULT_MARKER_ICON = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTU1IiBoZWlnaHQ9Ijc3MCIgdmlld0JveD0iMCAwIDU1NSA3NzAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxtYXNrIGlkPSJwYXRoLTEtaW5zaWRlLTFfMjUxXzEyNTMiIGZpbGw9IndoaXRlIj4KPHBhdGggZD0iTTI3Ny41IDBDNDMwLjQwMiAwIDU1NSAxMzMuMjQ2IDU1NSAzMDcuOTk1QzU1NSAzNTYuMDQyIDUzNi40NDIgNDA4LjU1NiA1MTIuOTI0IDQ1Ni45ODhDNDg4Ljg4NSA1MDYuNDk5IDQ1Ny4yODYgNTU2LjUxIDQyNi4zMSA2MDAuNzg0QzM4OC40MDkgNjU0LjY2OSAzNDcuOTI4IDcwNi4yNTUgMzA1LjA0MiA3NTUuMzJMMzAyLjg5MiA3NTcuNzQ2TDMwMi4zMDIgNzU4LjRMMzAyLjA5NCA3NTguNjMyTDMwMi4wNTkgNzU4LjY3QzI5OC44MzYgNzYyLjI2MSAyOTUuMDA2IDc2NS4xMSAyOTAuNzg5IDc2Ny4wNTVDMjg2LjU3MiA3NjguOTk5IDI4Mi4wNDkgNzcwIDI3Ny40ODIgNzcwQzI3Mi45MTYgNzcwIDI2OC4zOTQgNzY4Ljk5OSAyNjQuMTc3IDc2Ny4wNTVDMjU5Ljk1OSA3NjUuMTEgMjU2LjEyOSA3NjIuMjYxIDI1Mi45MDYgNzU4LjY3TDI1Mi42OTggNzU4LjRMMjUyLjEwOCA3NTcuNzQ2TDI0OS45NTggNzU1LjMyQzIzNy43MyA3NDEuMzQgMjI1LjcwNCA3MjcuMTQ1IDIxMy44ODMgNzEyLjc0QzE4NC4yMDQgNjc2LjY0NiAxNTUuNzg2IDYzOS4zIDEyOC42OSA2MDAuNzg0Qzk3Ljc0OTMgNTU2LjUxIDY2LjExNDYgNTA2LjQ2IDQyLjA3NjIgNDU3LjAyN0MxOC41NTggNDA4LjU1NyAwIDM1Ni4wNDIgMCAzMDcuOTk1QzAuMDAwMjAzMDk1IDEzMy4yNDYgMTI0LjU5OCAwIDI3Ny41IDBaIi8+CjwvbWFzaz4KPHBhdGggZD0iTTI3Ny41IDBDNDMwLjQwMiAwIDU1NSAxMzMuMjQ2IDU1NSAzMDcuOTk1QzU1NSAzNTYuMDQyIDUzNi40NDIgNDA4LjU1NiA1MTIuOTI0IDQ1Ni45ODhDNDg4Ljg4NSA1MDYuNDk5IDQ1Ny4yODYgNTU2LjUxIDQyNi4zMSA2MDAuNzg0QzM4OC40MDkgNjU0LjY2OSAzNDcuOTI4IDcwNi4yNTUgMzA1LjA0MiA3NTUuMzJMMzAyLjg5MiA3NTcuNzQ2TDMwMi4zMDIgNzU4LjRMMzAyLjA5NCA3NTguNjMyTDMwMi4wNTkgNzU4LjY3QzI5OC44MzYgNzYyLjI2MSAyOTUuMDA2IDc2NS4xMSAyOTAuNzg5IDc2Ny4wNTVDMjg2LjU3MiA3NjguOTk5IDI4Mi4wNDkgNzcwIDI3Ny40ODIgNzcwQzI3Mi45MTYgNzcwIDI2OC4zOTQgNzY4Ljk5OSAyNjQuMTc3IDc2Ny4wNTVDMjU5Ljk1OSA3NjUuMTEgMjU2LjEyOSA3NjIuMjYxIDI1Mi45MDYgNzU4LjY3TDI1Mi42OTggNzU4LjRMMjUyLjEwOCA3NTcuNzQ2TDI0OS45NTggNzU1LjMyQzIzNy43MyA3NDEuMzQgMjI1LjcwNCA3MjcuMTQ1IDIxMy44ODMgNzEyLjc0QzE4NC4yMDQgNjc2LjY0NiAxNTUuNzg2IDYzOS4zIDEyOC42OSA2MDAuNzg0Qzk3Ljc0OTMgNTU2LjUxIDY2LjExNDYgNTA2LjQ2IDQyLjA3NjIgNDU3LjAyN0MxOC41NTggNDA4LjU1NyAwIDM1Ni4wNDIgMCAzMDcuOTk1QzAuMDAwMjAzMDk1IDEzMy4yNDYgMTI0LjU5OCAwIDI3Ny41IDBaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNNTU1IDMwNy45OTVMNTcwIDMwNy45OTVMNTcwIDMwNy45OTVMNTU1IDMwNy45OTVaTTUxMi45MjQgNDU2Ljk4OEw0OTkuNDMxIDQ1MC40MzZMNDk5LjQzIDQ1MC40MzdMNTEyLjkyNCA0NTYuOTg4Wk00MjYuMzEgNjAwLjc4NEw0MzguNTc5IDYwOS40MTRMNDM4LjU4OSA2MDkuMzk4TDQzOC42IDYwOS4zODNMNDI2LjMxIDYwMC43ODRaTTMwNS4wNDIgNzU1LjMyTDMxNi4yNjcgNzY1LjI3MUwzMTYuMzAxIDc2NS4yMzFMMzE2LjMzNiA3NjUuMTkyTDMwNS4wNDIgNzU1LjMyWk0zMDIuODkyIDc1Ny43NDZMMzE0LjAzMyA3NjcuNzlMMzE0LjA3NSA3NjcuNzQzTDMxNC4xMTYgNzY3LjY5NkwzMDIuODkyIDc1Ny43NDZaTTMwMi4zMDIgNzU4LjRMMjkxLjE2MSA3NDguMzU3TDI5MS4xNTMgNzQ4LjM2NUwyOTEuMTQ1IDc0OC4zNzRMMzAyLjMwMiA3NTguNFpNMzAyLjA5NCA3NTguNjMyTDMxMy4xMTYgNzY4LjgwNkwzMTMuMTgzIDc2OC43MzNMMzEzLjI1IDc2OC42NTlMMzAyLjA5NCA3NTguNjMyWk0zMDIuMDU5IDc1OC42N0wyOTEuMDM3IDc0OC40OTZMMjkwLjk2NSA3NDguNTczTDI5MC44OTUgNzQ4LjY1MUwzMDIuMDU5IDc1OC42N1pNMjkwLjc4OSA3NjcuMDU1TDI5Ny4wNjkgNzgwLjY3N0wyOTcuMDY5IDc4MC42NzdMMjkwLjc4OSA3NjcuMDU1Wk0yNzcuNDgyIDc3MEwyNzcuNDgyIDc4NUgyNzcuNDgyVjc3MFpNMjY0LjE3NyA3NjcuMDU1TDI1Ny44OTcgNzgwLjY3N0wyNTcuODk3IDc4MC42NzdMMjY0LjE3NyA3NjcuMDU1Wk0yNTIuOTA2IDc1OC42N0wyNDEuMDMxIDc2Ny44MzRMMjQxLjM3MSA3NjguMjc1TDI0MS43NDMgNzY4LjY4OUwyNTIuOTA2IDc1OC42N1pNMjUyLjY5OCA3NTguNEwyNjQuNTczIDc0OS4yMzZMMjY0LjIyMyA3NDguNzgyTDI2My44MzkgNzQ4LjM1N0wyNTIuNjk4IDc1OC40Wk0yNTIuMTA4IDc1Ny43NDZMMjQwLjg4NCA3NjcuNjk2TDI0MC45MjUgNzY3Ljc0M0wyNDAuOTY3IDc2Ny43OUwyNTIuMTA4IDc1Ny43NDZaTTI0OS45NTggNzU1LjMyTDIzOC42NjcgNzY1LjE5NkwyMzguNyA3NjUuMjMzTDIzOC43MzMgNzY1LjI3MUwyNDkuOTU4IDc1NS4zMlpNMjEzLjg4MyA3MTIuNzRMMjI1LjQ3OCA3MDMuMjI1TDIyNS40NzQgNzAzLjIxOUwyMjUuNDY5IDcwMy4yMTNMMjEzLjg4MyA3MTIuNzRaTTEyOC42OSA2MDAuNzg0TDExNi4zOTUgNjA5LjM3N0wxMTYuNDA5IDYwOS4zOTZMMTE2LjQyMiA2MDkuNDE1TDEyOC42OSA2MDAuNzg0Wk00Mi4wNzYyIDQ1Ny4wMjdMMjguNTgwOCA0NjMuNTc1TDI4LjU4NjYgNDYzLjU4N0w0Mi4wNzYyIDQ1Ny4wMjdaTTAgMzA3Ljk5NUwtMTUgMzA3Ljk5NVYzMDcuOTk1SDBaTTI3Ny41IDBWMTVDNDIwLjgzNyAxNSA1NDAgMTQwLjE4OSA1NDAgMzA3Ljk5NUw1NTUgMzA3Ljk5NUw1NzAgMzA3Ljk5NUM1NzAgMTI2LjMwNCA0MzkuOTY4IC0xNSAyNzcuNSAtMTVWMFpNNTU1IDMwNy45OTVINTQwQzU0MCAzNTIuNjEgNTIyLjYzNiA0MDIuNjQ3IDQ5OS40MzEgNDUwLjQzNkw1MTIuOTI0IDQ1Ni45ODhMNTI2LjQxNyA0NjMuNTRDNTUwLjI0OCA0MTQuNDY1IDU3MCAzNTkuNDc1IDU3MCAzMDcuOTk1SDU1NVpNNTEyLjkyNCA0NTYuOTg4TDQ5OS40MyA0NTAuNDM3QzQ3NS44NjcgNDk4Ljk2NyA0NDQuNzQ5IDU0OC4yNjIgNDE0LjAxOSA1OTIuMTg1TDQyNi4zMSA2MDAuNzg0TDQzOC42IDYwOS4zODNDNDY5LjgyMiA1NjQuNzU4IDUwMS45MDMgNTE0LjAzIDUyNi40MTcgNDYzLjU0TDUxMi45MjQgNDU2Ljk4OFpNNDI2LjMxIDYwMC43ODRMNDE0LjA0IDU5Mi4xNTVDMzc2LjQ0IDY0NS42MTMgMzM2LjI4NCA2OTYuNzg1IDI5My43NDggNzQ1LjQ0OUwzMDUuMDQyIDc1NS4zMkwzMTYuMzM2IDc2NS4xOTJDMzU5LjU3MyA3MTUuNzI2IDQwMC4zNzkgNjYzLjcyNSA0MzguNTc5IDYwOS40MTRMNDI2LjMxIDYwMC43ODRaTTMwNS4wNDIgNzU1LjMyTDI5My44MTcgNzQ1LjM3TDI5MS42NjcgNzQ3Ljc5NkwzMDIuODkyIDc1Ny43NDZMMzE0LjExNiA3NjcuNjk2TDMxNi4yNjcgNzY1LjI3MUwzMDUuMDQyIDc1NS4zMlpNMzAyLjg5MiA3NTcuNzQ2TDI5MS43NSA3NDcuNzAyTDI5MS4xNjEgNzQ4LjM1N0wzMDIuMzAyIDc1OC40TDMxMy40NDMgNzY4LjQ0NEwzMTQuMDMzIDc2Ny43OUwzMDIuODkyIDc1Ny43NDZaTTMwMi4zMDIgNzU4LjRMMjkxLjE0NSA3NDguMzc0TDI5MC45MzcgNzQ4LjYwNUwzMDIuMDk0IDc1OC42MzJMMzEzLjI1IDc2OC42NTlMMzEzLjQ1OCA3NjguNDI3TDMwMi4zMDIgNzU4LjRaTTMwMi4wOTQgNzU4LjYzMkwyOTEuMDcyIDc0OC40NThMMjkxLjAzNyA3NDguNDk2TDMwMi4wNTkgNzU4LjY3TDMxMy4wODEgNzY4Ljg0NEwzMTMuMTE2IDc2OC44MDZMMzAyLjA5NCA3NTguNjMyWk0zMDIuMDU5IDc1OC42N0wyOTAuODk1IDc0OC42NTFDMjg4Ljk4MyA3NTAuNzgyIDI4Ni43OTcgNzUyLjM3OCAyODQuNTA5IDc1My40MzNMMjkwLjc4OSA3NjcuMDU1TDI5Ny4wNjkgNzgwLjY3N0MzMDMuMjE2IDc3Ny44NDMgMzA4LjY4OSA3NzMuNzQgMzEzLjIyMiA3NjguNjg5TDMwMi4wNTkgNzU4LjY3Wk0yOTAuNzg5IDc2Ny4wNTVMMjg0LjUwOSA3NTMuNDMzQzI4Mi4yMjYgNzU0LjQ4NSAyNzkuODQzIDc1NSAyNzcuNDgyIDc1NVY3NzBWNzg1QzI4NC4yNTUgNzg1IDI5MC45MTcgNzgzLjUxMyAyOTcuMDY5IDc4MC42NzdMMjkwLjc4OSA3NjcuMDU1Wk0yNzcuNDgyIDc3MEwyNzcuNDgzIDc1NUMyNzUuMTIyIDc1NSAyNzIuNzQgNzU0LjQ4NSAyNzAuNDU3IDc1My40MzNMMjY0LjE3NyA3NjcuMDU1TDI1Ny44OTcgNzgwLjY3N0MyNjQuMDQ4IDc4My41MTMgMjcwLjcwOSA3ODUgMjc3LjQ4MiA3ODVMMjc3LjQ4MiA3NzBaTTI2NC4xNzcgNzY3LjA1NUwyNzAuNDU3IDc1My40MzNDMjY4LjE2OCA3NTIuMzc3IDI2NS45ODEgNzUwLjc4MSAyNjQuMDcgNzQ4LjY1MUwyNTIuOTA2IDc1OC42N0wyNDEuNzQzIDc2OC42ODlDMjQ2LjI3NyA3NzMuNzQxIDI1MS43NTEgNzc3Ljg0MyAyNTcuODk3IDc4MC42NzdMMjY0LjE3NyA3NjcuMDU1Wk0yNTIuOTA2IDc1OC42N0wyNjQuNzgxIDc0OS41MDZMMjY0LjU3MyA3NDkuMjM2TDI1Mi42OTggNzU4LjRMMjQwLjgyMyA3NjcuNTY1TDI0MS4wMzEgNzY3LjgzNEwyNTIuOTA2IDc1OC42N1pNMjUyLjY5OCA3NTguNEwyNjMuODM5IDc0OC4zNTdMMjYzLjI1IDc0Ny43MDJMMjUyLjEwOCA3NTcuNzQ2TDI0MC45NjcgNzY3Ljc5TDI0MS41NTcgNzY4LjQ0NEwyNTIuNjk4IDc1OC40Wk0yNTIuMTA4IDc1Ny43NDZMMjYzLjMzMyA3NDcuNzk2TDI2MS4xODMgNzQ1LjM3TDI0OS45NTggNzU1LjMyTDIzOC43MzMgNzY1LjI3MUwyNDAuODg0IDc2Ny42OTZMMjUyLjEwOCA3NTcuNzQ2Wk0yNDkuOTU4IDc1NS4zMkwyNjEuMjQ5IDc0NS40NDVDMjQ5LjEyNSA3MzEuNTgzIDIzNy4yIDcxNy41MDggMjI1LjQ3OCA3MDMuMjI1TDIxMy44ODMgNzEyLjc0TDIwMi4yODcgNzIyLjI1NkMyMTQuMjA3IDczNi43ODIgMjI2LjMzNiA3NTEuMDk3IDIzOC42NjcgNzY1LjE5NkwyNDkuOTU4IDc1NS4zMlpNMjEzLjg4MyA3MTIuNzRMMjI1LjQ2OSA3MDMuMjEzQzE5Ni4wMzEgNjY3LjQxMiAxNjcuODQgNjMwLjM2NCAxNDAuOTU5IDU5Mi4xNTRMMTI4LjY5IDYwMC43ODRMMTE2LjQyMiA2MDkuNDE1QzE0My43MzIgNjQ4LjIzNSAxNzIuMzc4IDY4NS44ODEgMjAyLjI5NyA3MjIuMjY3TDIxMy44ODMgNzEyLjc0Wk0xMjguNjkgNjAwLjc4NEwxNDAuOTg2IDU5Mi4xOTJDMTEwLjI4NSA1NDguMjYyIDc5LjEzIDQ5OC45MjYgNTUuNTY1OCA0NTAuNDY4TDQyLjA3NjIgNDU3LjAyN0wyOC41ODY2IDQ2My41ODdDNTMuMDk5MiA1MTMuOTk1IDg1LjIxMzUgNTY0Ljc1OCAxMTYuMzk1IDYwOS4zNzdMMTI4LjY5IDYwMC43ODRaTTQyLjA3NjIgNDU3LjAyN0w1NS41NzE1IDQ1MC40NzlDMzIuMzYzNyA0MDIuNjQ4IDE1IDM1Mi42MSAxNSAzMDcuOTk1SDBILTE1Qy0xNSAzNTkuNDc1IDQuNzUyMzYgNDE0LjQ2NSAyOC41ODA4IDQ2My41NzVMNDIuMDc2MiA0NTcuMDI3Wk0wIDMwNy45OTVMMTUgMzA3Ljk5NUMxNS4wMDAyIDE0MC4xODkgMTM0LjE2MyAxNSAyNzcuNSAxNVYwVi0xNUMxMTUuMDMyIC0xNSAtMTQuOTk5OCAxMjYuMzA0IC0xNSAzMDcuOTk1TDAgMzA3Ljk5NVoiIGZpbGw9IiNBQUFBQUEiIG1hc2s9InVybCgjcGF0aC0xLWluc2lkZS0xXzI1MV8xMjUzKSIvPgo8cmVjdCB4PSIxMzYiIHk9IjI3NSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjE0MyIgZmlsbD0iIzA2NUJGNSIvPgo8cmVjdCB4PSIzNzciIHk9IjI3NSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjE0MyIgZmlsbD0iIzA2NUJGNSIvPgo8cmVjdCB4PSIyMjMiIHk9IjI3NiIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE0MiIgZmlsbD0iIzA2NUJGNSIvPgo8cmVjdCB4PSIzMDAiIHk9IjI3NiIgd2lkdGg9IjMwIiBoZWlnaHQ9IjE0MiIgZmlsbD0iIzA2NUJGNSIvPgo8cmVjdCB4PSIxMTgiIHk9IjM3MiIgd2lkdGg9IjMxOCIgaGVpZ2h0PSI0NiIgcng9IjEwIiBmaWxsPSIjMDY1QkY1Ii8+CjxyZWN0IHg9IjE2NyIgeT0iMzU3IiB3aWR0aD0iMjMwIiBoZWlnaHQ9IjM0IiBmaWxsPSIjMDY1QkY1Ii8+CjxyZWN0IHg9IjExMyIgeT0iMjcyIiB3aWR0aD0iMzI5IiBoZWlnaHQ9IjIwIiByeD0iOCIgZmlsbD0iIzA2NUJGNSIvPgo8cGF0aCBkPSJNMTcyLjk5IDEzOS45ODZDMTY3LjIzOSAxMzguMTUxIDE2NC4zNjMgMTM3LjIzMyAxNjIuMTUgMTM4LjM4MUMxNTkuOTM3IDEzOS41MyAxNTguOTgyIDE0Mi41NyAxNTcuMDcxIDE0OC42NTFDMTUxLjYyNCAxNjUuOTg0IDE0My43NzggMTgxLjg5OSAxMzkuNDIgMTg5Ljg0N0MxMzguOTg1IDE5MC42NCAxMzguNzY4IDE5MS4wMzcgMTM4LjQ2NCAxOTEuNDI0QzEzOC4xNiAxOTEuODExIDEzNy44MDcgMTkyLjEzNSAxMzcuMTAxIDE5Mi43ODNMMTE1LjczOSAyMTIuMzY0QzExNS4xMiAyMTIuOTMxIDExNC44MTEgMjEzLjIxNSAxMTQuNDY3IDIxMy40NTJDMTE0LjEyMiAyMTMuNjg5IDExMy43NDcgMjEzLjg3NiAxMTIuOTk3IDIxNC4yNTJMNzkuMjYyOCAyMzEuMTE5Qzc4Ljg4MTUgMjMxLjMwOSA3OC42OTA5IDIzMS40MDUgNzguNDk0MiAyMzEuNDg2Qzc4LjI5NzUgMjMxLjU2OCA3OC4wOTUzIDIzMS42MzUgNzcuNjkwOSAyMzEuNzdMNjIuODY1OCAyMzYuNzExQzYyLjUxMDggMjM2LjgzIDYyLjMzMzIgMjM2Ljg4OSA2Mi4xNjQxIDIzNi45NTdDNjEuMTI1NCAyMzcuMzc1IDYwLjIyNDMgMjM4LjA3NSA1OS41NjI3IDIzOC45NzhDNTkuNDU1IDIzOS4xMjUgNTkuMzUzOSAyMzkuMjgzIDU5LjE1MTUgMjM5LjU5OFYyMzkuNTk4QzU4LjY5ODQgMjQwLjMwMyA1OC40NzE4IDI0MC42NTUgNTguMzExMSAyNDAuOTg5QzU3LjMwNDcgMjQzLjA4NCA1Ny41OTg4IDI0NS41NzIgNTkuMDY2IDI0Ny4zNzVDNTkuMzAwMiAyNDcuNjYzIDU5LjYwMjcgMjQ3Ljk1MyA2MC4yMDc3IDI0OC41MzJMNjcuMzIxNCAyNTUuMzVDNjcuNjYwNSAyNTUuNjc1IDY3LjgzMDEgMjU1LjgzNyA2OC4wMTE2IDI1NS45ODZDNjguMTkzMiAyNTYuMTM0IDY4LjM4NiAyNTYuMjY4IDY4Ljc3MTUgMjU2LjUzN0w3OS41IDI2NEw5Ni44MTEgMjcyLjg4OUM5Ny40MDQ5IDI3My4xOTQgOTcuNzAxOCAyNzMuMzQ3IDk4LjAxMzIgMjczLjQ2NUM5OC4zMjQ1IDI3My41ODQgOTguNjQ3NyAyNzMuNjY3IDk5LjI5NDIgMjczLjgzNEwxMTIuMDc3IDI3Ny4xMzNDMTEyLjc4OCAyNzcuMzE2IDExMy4xNDMgMjc3LjQwOCAxMTMuNTA2IDI3Ny40NTZDMTEzLjg2OSAyNzcuNTAzIDExNC4yMzYgMjc3LjUwNyAxMTQuOTY5IDI3Ny41MTNMMjcwLjM5NCAyNzguODkzQzI3Ni4wOTYgMjc4Ljk0MyAyNzguOTQ4IDI3OC45NjggMjgwLjcyNCAyNzcuMjA4QzI4Mi41IDI3NS40NDcgMjgyLjUgMjcyLjU5NiAyODIuNSAyNjYuODkzVjE2Ny4wNThDMjgyLjUgMTYxLjU5MyAyODIuNSAxNTguODYgMjgwLjgyMSAxNTcuMTE3QzI3OS4xNDMgMTU1LjM3NCAyNzYuNDEyIDE1NS4yNzIgMjcwLjk1IDE1NS4wNjdMMjQyLjUgMTU0TDIyNSAxNTJMMjA4LjQzMiAxNTAuMTA3QzIwNy45NjYgMTUwLjA1MyAyMDcuNzMzIDE1MC4wMjcgMjA3LjUwMyAxNDkuOTgyQzIwNy4yNzQgMTQ5LjkzNyAyMDcuMDQ4IDE0OS44NzUgMjA2LjU5NiAxNDkuNzVMMTg0IDE0My41TDE3Mi45OSAxMzkuOTg2WiIgZmlsbD0iIzA2NUJGNSIgc3Ryb2tlPSIjMDY1QkY1Ii8+CjxwYXRoIGQ9Ik0zODcuMjU1IDEzNy45OTNDMzkwLjYxMSAxMzYuOTIyIDM5NC4xNTcgMTM4Ljk2MiAzOTUuMDgyIDE0Mi4zNjFDNDAwLjYxNSAxNjIuNjgzIDQxMC4yOTggMTgyLjE1OCA0MTUuMDM3IDE5MC42NzRDNDE1LjM0MiAxOTEuMjI0IDQxNS43MzYgMTkxLjcxNiA0MTYuMiAxOTIuMTQxTDQzOC44ODEgMjEyLjkzMkM0MzkuMjkyIDIxMy4zMDkgNDM5Ljc1MyAyMTMuNjI2IDQ0MC4yNTIgMjEzLjg3Nkw0NzUuMTE5IDIzMS4zMDlDNDc1LjM3MyAyMzEuNDM2IDQ3NS42MzUgMjMxLjU0NSA0NzUuOTA1IDIzMS42MzVMNDkxLjQ5NCAyMzYuODMxQzQ5Mi43OTIgMjM3LjI2NCA0OTMuOTAzIDIzOC4xMjggNDk0LjY0NCAyMzkuMjc5TDQ5NS4zMjggMjQwLjM0M0M0OTYuODggMjQyLjc1NyA0OTYuNTA0IDI0NS45MzMgNDk0LjQzMiAyNDcuOTE5TDQ4Ni4zMzkgMjU1LjY3NUM0ODYuMTEzIDI1NS44OTEgNDg1Ljg3MSAyNTYuMDkgNDg1LjYxNCAyNTYuMjY4TDQ3NC41IDI2NEw0NTYuNTk0IDI3My4xOTVDNDU2LjE5OSAyNzMuMzk4IDQ1NS43ODMgMjczLjU1NiA0NTUuMzUzIDI3My42NjdMNDQxLjIxMSAyNzcuMzE2QzQ0MC43MzkgMjc3LjQzOCA0NDAuMjUzIDI3Ny41MDIgNDM5Ljc2NSAyNzcuNTA3TDI3Ny41NTMgMjc4Ljk0NkMyNzQuMjE5IDI3OC45NzYgMjcxLjUgMjc2LjI4MSAyNzEuNSAyNzIuOTQ3VjE2MS4yNzlDMjcxLjUgMTU4LjA1MyAyNzQuMDUxIDE1NS40MDQgMjc3LjI3NSAxNTUuMjgzTDMxMS41IDE1NEwzNDYuMDM0IDE1MC4wNTNDMzQ2LjM0NCAxNTAuMDE4IDM0Ni42NTEgMTQ5Ljk1OCAzNDYuOTUyIDE0OS44NzVMMzcwIDE0My41TDM4Ny4yNTUgMTM3Ljk5M1oiIGZpbGw9IiMwNjVCRjUiLz4KPC9zdmc+Cg==";
@@ -345,7 +356,7 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
                 
                 const line = leg.passShape?.linestring;
 
-                // 🚶‍♀️ WALK 단계의 steps가 있다면, 따로도 선을 그림
+                // WALK 단계의 steps가 있다면, 따로도 선을 그림
                 if (leg.mode === "WALK" && leg.steps?.length > 0) {
                   leg.steps.forEach((step) => {
                     if (step.linestring) {
@@ -852,47 +863,167 @@ export default forwardRef(function MapWebView({ range, onMessage }, ref) {
               try {
                 const data = JSON.parse(event.data);
 
+                // 유저 위치 업데이트
                 if (data.type === "USER_LOCATION_UPDATE") {
                   handlePositionUpdate(data);
                 }
 
+                // 사용자 반경 업데이트
                 if (data.type === "UPDATE_RADIUS") {
                   if (window.userCircle) {
                     window.userCircle.setRadius(data.radius);
                   }
                 }
 
+                // 사용자 근처 유적지 마커 표시
                 if (data.type === "NEARBY_HERITAGES") {
                   renderHeritageMarkers(data.payload);
                 }
 
+                // 지도 중심 재설정
                 if (data.type === "RECENTER_TO_COORD") {
                   const { latitude, longitude } = data.payload;
                   updateMapCenter(latitude, longitude);
                 }
 
-                 if (data.type === "DRAW_CAR_ROUTE") {
+                // 특정 유적지 마커 표시
+                if (data.type === "SHOW_SINGLE_MARKER") {
+                  const { id, name, latitude, longitude } = data.payload;
+                  if (window.focusedMarker) {
+                    window.focusedMarker.setMap(null);
+                  }
+                  const pos = new Tmapv2.LatLng(latitude, longitude);
+                  const marker = new Tmapv2.Marker({
+                    position: pos,
+                    icon: HIGHLIGHTED_MARKER_ICON,
+                    iconSize: new Tmapv2.Size(90, 90),
+                    animation: Tmapv2.MarkerOptions.ANIMATE_BOUNCE_ONCE,
+                    map: window.map,
+                  });
+                  window.focusedMarker = marker;  
+                }
+                
+                // 특정 유적지 마커 제거
+                if (data.type === "HIDE_SINGLE_MARKER") {
+                  if (window.focusedMarker) {
+                    window.focusedMarker.setMap(null);
+                    window.focusedMarker = null;
+                  }
+                }
+
+                // 자동차 경로 표시
+                if (data.type === "DRAW_CAR_ROUTE") {
                   drawCarRoute(data.payload);
                 }
+
+                // 대중교통 경로 표시
                 if (data.type === "DRAW_TRANSIT_ROUTE") {
-                  drawTransitRoute(data.payload.itineraries);
+                    drawTransitRoute(data.payload.itineraries);
                 }
+
+                // 도보 경로 표시
                 if (data.type === "DRAW_WALK_ROUTE") {
-                drawWalkRoute(data.payload);
+                  drawWalkRoute(data.payload);
                 }
-                if (data.type === "CLEAR_ROUTE") {
-                clearAllRoute();
-              }
+
+                // 경로 지우기
+               if (data.type === "CLEAR_ROUTE") {
+                  clearAllRoute();
+                }
+
+                // 사용자 반경 원과 유적지 마커 표시/숨기기
+                if (data.type === "TOGGLE_MAP_ELEMENTS") {
+                  const { show } = data.payload;
+                  if (window.userCircle) {
+                    window.userCircle.setVisible(show);
+                  }
+                  if (window.userMarker) {
+                    window.userMarker.setVisible(show);
+                  }
+                  window.heritageMarkers.forEach(marker => {
+                    marker.setVisible(show);
+                  });
+                  // 북마크 마커도 show 상태에 따라 처리
+                  if (show) {
+                    // 북마크 마커 다시 표시 요청
+                    if (window.ReactNativeWebView) {
+                      window.ReactNativeWebView.postMessage(JSON.stringify({
+                        type: "REQUEST_BOOKMARK_MARKERS"
+                      }));
+                    }
+                  } else {
+                    clearBookmarkMarkers();
+                  }
+                }
+
+                // 유적지 마커 하이라이트
+                if (data.type === "HIGHLIGHT_HERITAGE_MARKER") {
+                  const { id, latitude, longitude } = data.payload;
+                          
+                  // 해당 위치에 북마크 마커가 있는지 확인
+                  const isBookmarked = window.bookmarkMarkers.some(marker => {
+                    const pos = marker.getPosition();
+                    return pos.lat() === latitude && pos.lng() === longitude;
+                  });
+
+                  // 북마크된 유적지가 아닐 경우에만 하이라이트 마커 처리
+                  if (!isBookmarked) {
+                    // 기존 하이라이트 마커 제거
+                    if (window.highlightedMarker) {
+                      window.highlightedMarker.setMap(null);
+                      window.highlightedMarker = null;
+                    }
+
+                    // 하이라이트 마커 생성
+                    const pos = new Tmapv2.LatLng(latitude, longitude);
+                    const marker = new Tmapv2.Marker({
+                      position: pos,
+                      icon: HIGHLIGHTED_MARKER_ICON,
+                      iconSize: new Tmapv2.Size(90, 90),
+                      map: window.map,
+                    });
+
+                    // 하이라이트 마커 설정
+                    window.highlightedMarker = marker;
+                  }
+                }
+
+                if (data.type === "REMOVE_HERITAGE_HIGHLIGHT") {
+                  if (window.highlightedMarker) {
+                    window.highlightedMarker.setMap(null);
+                    window.highlightedMarker = null;
+                  }
+                }
 
                 // 북마크된 유적지 마커 표시
                 if (data.type === "SHOW_BOOKMARK_MARKERS") {
                   renderBookmarkMarkers(data.payload);
                 }
 
+                // 북마크된 유적지 마커 제거
                 if (data.type === "HIDE_BOOKMARK_MARKERS") {
                   clearBookmarkMarkers();
                 }
 
+                // 지도 중심과 경계 정보 요청 처리
+                if (data.type === "GET_MAP_CENTER_AND_BOUNDS") {
+                  const center = window.map.getCenter();
+                  const bounds = window.map.getBounds();
+
+                  window.ReactNativeWebView.postMessage(
+                    JSON.stringify({
+                      type: "MAP_CENTER_AND_BOUNDS",
+                      payload: {
+                        center,
+                        bounds,
+                      },
+                    })
+                  );
+                }
+
+                if (data.type === "SHOW_BUTTON_HERITAGES") {
+                  renderButtonHeritageMarkers(data.payload);
+                }
               } catch (e) {
                 console.error("메시지 처리 오류:", e);
               }

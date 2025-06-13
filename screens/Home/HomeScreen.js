@@ -1,58 +1,59 @@
 import React, { useEffect, useState, useRef } from "react";
-import {
-  SafeAreaView,
-  View,
-  StyleSheet,
-  Text,
-  Animated,
-  Dimensions,
-} from "react-native";
+import { View, StyleSheet, Animated, Dimensions } from "react-native";
+import { useRoute as useNavRoute } from "@react-navigation/native";
+
+// 외부 라이브러리 import
+import Constants from "expo-constants";
+
+// 내부 컴포넌트 및 유틸리티 import
 import SearchBar from "./SearchBar";
 import RangeSlider from "./RangeSlider";
 import SlidePanel from "./SlidePanel";
 import FooterTabBar from "./FooterTabBar";
-
+import HeritageDetailPanel from "./HeritageDetailPanel";
 import RecenterMapButton from "../../components/RecenterMapButton";
 import ChatbotButton from "../../components/ChatbotButton";
 import HeritageFindButton from "../../components/HeritageFindButton";
 import AccordionButton from "../../components/AccordionButton";
 import MapWebView from "../../components/MapWebView";
-
 import { HeritageProvider } from "../../contexts/HeritageContext";
-import Constants from "expo-constants";
-import {
-  useNavigation,
-  useRoute as useNavRoute,
-} from "@react-navigation/native";
-import HeritageDetailPanel from "./HeritageDetailPanel";
 import { useRoute } from "../../contexts/RouteContext";
-import { useRouteMode } from "../../contexts/RouteModeContext";
 
+// 화면 높이 상수
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-// 패널 위치 상수 추가
+// 패널 위치 상수
 const PANEL_POSITIONS = {
   TOP: SCREEN_HEIGHT * 0.2, // 20%
   MIDDLE: SCREEN_HEIGHT * 0.6, // 60%
   BOTTOM: SCREEN_HEIGHT * 0.82, // 82%
 };
 
+/**
+ * 홈 화면 메인 컴포넌트
+ *
+ * 화면 구성:
+ * - 상단: 검색창, 슬라이더
+ * - 중앙: 지도 (WebView)
+ * - 하단: 탭바, 슬라이드 패널
+ * - 우측: 플로팅 버튼들 - 아코디언 버튼으로 묶음 (챗봇, 지도 중심 설정, 현재 지도 상 유적지 찾기 버튼)
+ */
 export default function HomeScreen() {
-  const [currentTab, setCurrentTab] = useState("nearby"); // 현재 선택된 탭
-  const [range, setRange] = useState(500); // 범위 (슬라이더로 조절)
-  const [selectedHeritage, setSelectedHeritage] = useState(null); // 검색 결과로 선택된 유적지
-  const [mapCenter, setMapCenter] = useState(null);
-  const [mapBounds, setMapBounds] = useState(null);
-  const [isAccordionExpanded, setIsAccordionExpanded] = useState(false); // 아코디언 상태 추가
-  const { startPoint, destination, routeData } = useRoute();
-  const { routeMode } = useRouteMode();
   const navRoute = useNavRoute();
   const webViewRef = useRef(null);
+  const { startPoint, destination, routeData } = useRoute();
+
+  const [currentTab, setCurrentTab] = useState("nearby"); // 현재 선택된 탭 (기본값: 주변 정보 탭)
+  const [range, setRange] = useState(500); // 범위 (기본값: 500m)
+  const [selectedHeritage, setSelectedHeritage] = useState(null); // 선택된 유적지 (검색 결과, 유적지 마커 클릭, 푸시 알림 등에서 전달받은 유적지)
+  const [mapCenter, setMapCenter] = useState(null); // 현재 지도 중심 좌표
+  const [mapBounds, setMapBounds] = useState(null); // 현재 지도 경계 좌표
+  const [isAccordionExpanded, setIsAccordionExpanded] = useState(false); // 아코디언 상태 추가
 
   // 길찾기 모드 여부 확인 (routeData가 있으면 길찾기 중)
   const isRouting = !!routeData;
 
-  // 출발지 또는 목적지가 설정되면 DirectionsPanel로 전환
+  // 출발지 또는 목적지가 설정되면 즉시 길찾기 탭으로 전환 (길찾기 모드 시작)
   useEffect(() => {
     if (startPoint || destination) {
       setCurrentTab("directions");
@@ -73,9 +74,10 @@ export default function HomeScreen() {
     }
   }, [isRouting]);
 
-  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT * 0.6)).current;
-  const heritageDetailAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT * 0.6)).current; // 슬라이드 패널 애니메이션
+  const heritageDetailAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current; // 유적지 상세 패널 애니메이션
 
+  // 유적지가 선택(검색 결과, 유적지 마커 클릭, 푸시 알림 총 3가지 경우에서 전달됨)되면 heritageDetailPanel이 부드럽게 올라오도록 애니메이션 적용
   useEffect(() => {
     if (selectedHeritage) {
       // 시작 위치를 항상 화면 아래로 초기화
@@ -91,20 +93,24 @@ export default function HomeScreen() {
     }
   }, [selectedHeritage]);
 
+  // heritageDetailPanel 닫기 핸들러 메서드
   const handleClosePanel = () => {
-    setSelectedHeritage(null);
+    setSelectedHeritage(null); // 선택된 유적지 초기화 ==> heritageDetailPanel 닫힘
   };
 
+  // 네비게이션 파라미터를 통한 유적지 정보 처리 (검색 결과, 푸시 알림에서 전달받은 유적지 정보 처리)
   useEffect(() => {
-    const heritageFromSearch = navRoute.params?.heritage;
-    const heritagesFromNotification = navRoute.params?.heritages;
-    const isFromNotification = navRoute.params?.isFromNotification;
+    const heritageFromSearch = navRoute.params?.heritage; // 검색에서 온 유적지
+    const heritagesFromNotification = navRoute.params?.heritages; // 알림에서 온 유적지(들)
+    const isFromNotification = navRoute.params?.isFromNotification; // 알림 여부
 
+    // 검색 결과에서 유적지 선택한 경우
     if (heritageFromSearch) {
       setSelectedHeritage(heritageFromSearch);
       navRoute.params.heritage = null; // 초기화 (무한루프 방지)
-    } else if (heritagesFromNotification && isFromNotification) {
-      // 알림에서 온 경우 여러 유적지를 포함하는 객체로 설정
+    }
+    // 푸시 알림에서 온 경우 여러 유적지를 포함하는 객체로 설정
+    else if (heritagesFromNotification && isFromNotification) {
       setSelectedHeritage({
         heritages: heritagesFromNotification,
         isFromNotification: true,
@@ -115,19 +121,19 @@ export default function HomeScreen() {
     }
   }, [navRoute.params]);
 
-  // RN -> WebView 메시지 핸들러 (마커 클릭 시 heritageDetailPanel 열림)
+  // RN -> WebView 메시지 핸들러 메서드 (유적지 마커 클릭 시 heritageDetailPanel 열림)
   const handleWebViewMessage = (event) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
 
+      // 지도 중심 및 경계 정보 업데이트
       if (data.type === "MAP_CENTER_AND_BOUNDS") {
         const { center, bounds } = data.payload;
-        console.log("center", center);
-        console.log("bounds", bounds);
         setMapCenter(center);
         setMapBounds(bounds);
       }
 
+      // 유적지 마커 클릭 시 heritageDetailPanel 열기
       if (data.type === "HERITAGE_MARKER_CLICKED") {
         setSelectedHeritage(data.payload);
       }
@@ -136,8 +142,9 @@ export default function HomeScreen() {
     }
   };
 
-  // 알림 핸들러 설정
+  // 푸시 알림 핸들러 설정
   useEffect(() => {
+    // 푸시 알림에서 온 유적지(들)을 선택된 유적지로 설정
     global.notificationHandler = (heritages) => {
       setSelectedHeritage({
         heritages: heritages,
@@ -152,7 +159,7 @@ export default function HomeScreen() {
 
   return (
     <HeritageProvider range={range}>
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         {/* 지도 영역 */}
         <MapWebView
           ref={webViewRef}
@@ -172,7 +179,7 @@ export default function HomeScreen() {
           </View>
 
           {/* 하단 영역 */}
-          {/* 지도 중심 설정 & 챗봇 버튼 - SlidePanel보다 아래 zIndex로 렌더 */}
+          {/* 아코디언 버튼 - SlidePanel보다 아래 zIndex로 렌더링 */}
           {!selectedHeritage && (
             <>
               {isAccordionExpanded && (
@@ -218,11 +225,12 @@ export default function HomeScreen() {
           {/* 하단 탭바 */}
           <FooterTabBar currentTab={currentTab} onTabPress={setCurrentTab} />
         </View>
-      </SafeAreaView>
+      </View>
     </HeritageProvider>
   );
 }
 
+// 스타일 정의
 const styles = StyleSheet.create({
   container: {
     flex: 1,

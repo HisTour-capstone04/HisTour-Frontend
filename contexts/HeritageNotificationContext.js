@@ -1,23 +1,39 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { useUserLocation } from "./UserLocationContext";
-import { useAuth } from "./AuthContext";
+
+// 외부 라이브러리 import
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+
+// 내부 컨텍스트 및 유틸리티 import
+import { useUserLocation } from "./UserLocationContext";
+import { useAuth } from "./AuthContext";
+
+// 서버 주소 상수
 import { IP_ADDRESS } from "../config/apiKeys";
 
-const CHECK_INTERVAL = 5 * 60 * 1000; // 5분 (밀리초)
+// 알림 관련 상수
+const CHECK_INTERVAL = 5 * 60 * 1000; // 5분 (밀리초) = 5분 간격으로 api 호출
 const RADIUS = 1000; // 1km
 const MIN_NOTIFICATION_INTERVAL = 5 * 60 * 1000; // 5분 간격으로 알림 제한
 
+// 유적지 알림 컨텍스트 생성
 const HeritageNotificationContext = createContext();
+``;
 
+/**
+ * 유적지 알림 프로바이더 컴포넌트
+ * 주요 기능:
+ * 1. 사용자 위치 근처 유적지 자동 감지 및 알림 전송 (5분 간격)
+ * 2. 알림 클릭 시 유적지 상세 정보 전달
+ */
 export const HeritageNotificationProvider = ({ children }) => {
-  const [isEnabled, setIsEnabled] = useState(true);
-  const [isRunning, setIsRunning] = useState(false);
-  const [lastNotificationTime, setLastNotificationTime] = useState(0);
-  const [checkIntervalId, setCheckIntervalId] = useState(null);
+  // 알림 상태 관리
+  const [isEnabled, setIsEnabled] = useState(true); // 알림 활성화 상태
+  const [isRunning, setIsRunning] = useState(false); // 알림 서비스 실행 상태
+  const [lastNotificationTime, setLastNotificationTime] = useState(0); // 마지막 알림 전송 시간
+  const [checkIntervalId, setCheckIntervalId] = useState(null); // 주기적 체크 인터벌 ID
   const [notificationSubscription, setNotificationSubscription] =
-    useState(null);
+    useState(null); // 알림 응답 리스너 (알림 클릭 시 유적지 상세 정보 전달)
 
   const { userLocation, locationPermission } = useUserLocation();
   const { accessToken } = useAuth();
@@ -39,10 +55,7 @@ export const HeritageNotificationProvider = ({ children }) => {
         // 알림 응답 리스너 설정
         const subscription =
           Notifications.addNotificationResponseReceivedListener((response) => {
-            console.log(
-              "사용자가 알림을 클릭했습니다:",
-              response.notification.request.content
-            );
+            console.log("사용자가 알림을 클릭했습니다");
             const data = response.notification.request.content.data;
 
             // 전역 이벤트로 알림 데이터 전달
@@ -98,7 +111,7 @@ export const HeritageNotificationProvider = ({ children }) => {
     userLocationRef.current = userLocation;
   }, [userLocation]);
 
-  // 근처 유적지 API 호출
+  // 근처 유적지 API 호출 메서드
   const fetchNearbyHeritages = async (latitude, longitude) => {
     if (!accessToken) {
       console.warn("토큰 없음 → 알림 요청 중단");
@@ -110,6 +123,7 @@ export const HeritageNotificationProvider = ({ children }) => {
 
       console.log("알림 API 호출:", url);
 
+      // 서버에 근처 유적지 요청
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -133,17 +147,18 @@ export const HeritageNotificationProvider = ({ children }) => {
     }
   };
 
-  // 로컬 알림 전송
+  // 로컬 알림 전송 메서드
   const sendNotification = async (message, count = 0, heritages = []) => {
     try {
       const currentTime = Date.now();
 
-      // 너무 자주 알림이 가지 않도록 제한
+      // 너무 자주 알림이 가지 않도록 제한 (5분 간격)
       if (currentTime - lastNotificationTime < MIN_NOTIFICATION_INTERVAL) {
         console.log("알림 간격 제한으로 스킵");
         return;
       }
 
+      // 알림 스케줄링
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "내 근처 새로운 유적지가 발견됐어요 👀",
@@ -166,7 +181,7 @@ export const HeritageNotificationProvider = ({ children }) => {
     }
   };
 
-  // 위치 기반 유적지 체크 및 알림
+  // 위치 기반 유적지 체크 및 알림 메서드
   const checkAndNotifyHeritages = async (location) => {
     if (!location || !location.latitude || !location.longitude) {
       console.log("사용자 위치 정보 없음");
@@ -220,7 +235,7 @@ export const HeritageNotificationProvider = ({ children }) => {
     // 첫 번째 체크 즉시 실행
     checkAndNotifyHeritages(userLocation);
 
-    // 주기적 체크 시작
+    // 주기적 체크 시작 (5분 간격)
     const intervalId = setInterval(() => {
       console.log("유적지 주기적 체크 실행...");
       checkAndNotifyHeritages(userLocationRef.current);
@@ -236,30 +251,40 @@ export const HeritageNotificationProvider = ({ children }) => {
     };
   }, [isEnabled, locationPermission, userLocation]);
 
-  const value = {
-    isEnabled,
-    setIsEnabled,
-    status: {
-      isRunning,
-      lastNotificationTime,
-    },
-    manualCheck: (userLocation) => {
-      if (isEnabled) {
-        checkAndNotifyHeritages(userLocation);
-      } else {
-        console.log("알림이 비활성화되어 있어 수동 체크를 수행하지 않습니다.");
-      }
-    },
-    canCheck: !!userLocation && !!locationPermission,
-  };
-
   return (
-    <HeritageNotificationContext.Provider value={value}>
+    <HeritageNotificationContext.Provider
+      value={{
+        // 알림 상태
+        isEnabled,
+        setIsEnabled,
+
+        // 알림 서비스 상태
+        status: {
+          isRunning,
+          lastNotificationTime,
+        },
+
+        // 알림 관련 메서드
+        manualCheck: (userLocation) => {
+          if (isEnabled) {
+            checkAndNotifyHeritages(userLocation);
+          } else {
+            console.log(
+              "알림이 비활성화되어 있어 수동 체크를 수행하지 않습니다."
+            );
+          }
+        },
+
+        // 알림 가능 여부
+        canCheck: !!userLocation && !!locationPermission,
+      }}
+    >
       {children}
     </HeritageNotificationContext.Provider>
   );
 };
 
+// 유적지 알림 컨텍스트 사용을 위한 커스텀 훅
 export const useHeritageNotification = () => {
   const context = useContext(HeritageNotificationContext);
   if (context === undefined) {

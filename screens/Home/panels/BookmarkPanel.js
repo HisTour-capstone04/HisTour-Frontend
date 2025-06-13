@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   View,
   Text,
@@ -10,38 +10,51 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+
+// 외부 라이브러리 import
+import Toast from "react-native-toast-message";
+
+// 내부 컨텍스트 및 유틸리티 import
 import { useRoute } from "../../../contexts/RouteContext";
 import { useVia } from "../../../contexts/ViaContext";
-import { useNavigation } from "@react-navigation/native";
 import { useBookmark } from "../../../contexts/BookmarkContext";
-import Toast from "react-native-toast-message";
-import { useContext } from "react";
 import { AuthContext } from "../../../contexts/AuthContext";
 import { theme } from "../../../theme/colors";
 
+/**
+ * 북마크 패널 컴포넌트
+ * 주요 기능: 사용자가 북마크한 유적지 목록 표시
+ */
 export default function BookmarkPanel() {
+  // 컨텍스트 및 네비게이션 훅
   const { setDestination, setRoutePoints } = useRoute();
   const { addStopover } = useVia();
   const navigation = useNavigation();
   const { isLoggedIn } = useContext(AuthContext);
   const { bookmarks, removeBookmark } = useBookmark();
-  const [expandedIds, setExpandedIds] = useState([]);
-  const [expandedAddresses, setExpandedAddresses] = useState([]);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
-  const [currentHeritageImages, setCurrentHeritageImages] = useState([]);
 
+  // UI 상태 관리
+  const [expandedIds, setExpandedIds] = useState([]); // 확장된 유적지 설명 ID 목록
+  const [expandedAddresses, setExpandedAddresses] = useState([]); // 확장된 유적지 주소 ID 목록
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null); // 선택된 이미지 인덱스
+  const [currentHeritageImages, setCurrentHeritageImages] = useState([]); // 현재 유적지 이미지 목록
+
+  // 유적지 설명 확장/축소 토글 메서드
   const toggleDescription = (id) => {
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 유적지 주소 확장/축소 토글 메서드
   const toggleAddress = (id) => {
     setExpandedAddresses((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 로그인하지 않은 경우 로그인 안내 화면 표시
   if (!isLoggedIn) {
     return (
       <View style={styles.container}>
@@ -63,6 +76,7 @@ export default function BookmarkPanel() {
     );
   }
 
+  // 북마크한 유적지가 없는 경우 빈 상태 화면 표시
   if (bookmarks.length === 0) {
     return (
       <View style={styles.container}>
@@ -73,14 +87,17 @@ export default function BookmarkPanel() {
 
   return (
     <View style={styles.container}>
+      {/* 북마크 목록 스크롤 */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        {/* 패널 헤더 */}
         <View style={[styles.header, { marginHorizontal: -20 }]}>
           <Text style={styles.titleText}>북마크 목록</Text>
         </View>
+        {/* 북마크된 유적지 목록 렌더링 */}
         {bookmarks.map((heritage, index) => {
           const isExpanded = expandedIds.includes(heritage.id);
           const maxLength = 100; // 최대 표시 글자 수
@@ -89,8 +106,12 @@ export default function BookmarkPanel() {
 
           return (
             <React.Fragment key={heritage.id}>
+              {/* 개별 유적지 아이템 */}
               <View style={styles.itemContainer}>
+                {/* 유적지 이름 */}
                 <Text style={styles.name}>{heritage.name}</Text>
+
+                {/* 유적지 주소 (20자 이상일 경우 일부만 표시, 확장 가능) */}
                 <View style={styles.locationContainer}>
                   <Text style={styles.address}>
                     {heritage.detailAddress.length > 20 &&
@@ -115,6 +136,7 @@ export default function BookmarkPanel() {
                     </TouchableOpacity>
                   )}
                 </View>
+                {/* 유적지 설명 (100자 이상일 경우 일부만 표시, 확장 가능) */}
                 <Text style={[styles.description]}>
                   {isExpanded
                     ? heritage.description
@@ -134,6 +156,7 @@ export default function BookmarkPanel() {
                   )}
                 </Text>
 
+                {/* 유적지 이미지 갤러리 */}
                 {heritage.imageUrls?.length > 0 && (
                   <ScrollView
                     horizontal
@@ -154,8 +177,11 @@ export default function BookmarkPanel() {
                   </ScrollView>
                 )}
 
+                {/* 액션 버튼들 */}
                 <View style={styles.buttonRow}>
+                  {/* 왼쪽 버튼들 (북마크 제거, 장바구니 추가) */}
                   <View style={styles.leftButtons}>
+                    {/* 북마크 제거 버튼 */}
                     <TouchableOpacity
                       style={styles.iconButton}
                       onPress={() => removeBookmark(heritage.id)}
@@ -167,6 +193,7 @@ export default function BookmarkPanel() {
                       />
                     </TouchableOpacity>
 
+                    {/* 장바구니 추가 버튼 */}
                     <TouchableOpacity
                       style={styles.iconButton}
                       onPress={async () => {
@@ -188,7 +215,9 @@ export default function BookmarkPanel() {
                     </TouchableOpacity>
                   </View>
 
+                  {/* 오른쪽 버튼들 (출발지 설정, 목적지 설정, 챗봇) */}
                   <View style={styles.rightButtons}>
+                    {/* 출발지 설정 버튼 */}
                     <TouchableOpacity
                       style={styles.blueButton}
                       onPress={() => {
@@ -206,6 +235,7 @@ export default function BookmarkPanel() {
                       <Text style={styles.buttonText}>출발</Text>
                     </TouchableOpacity>
 
+                    {/* 목적지 설정 버튼 */}
                     <TouchableOpacity
                       style={styles.blueButton}
                       onPress={() => {
@@ -220,6 +250,7 @@ export default function BookmarkPanel() {
                       <Text style={styles.buttonText}>도착</Text>
                     </TouchableOpacity>
 
+                    {/* 챗봇 버튼 */}
                     <TouchableOpacity
                       style={styles.chatButton}
                       onPress={() => {
@@ -237,8 +268,11 @@ export default function BookmarkPanel() {
                   </View>
                 </View>
               </View>
+
+              {/* 유적지 간 구분선 */}
               {index < bookmarks.length - 1 && <View style={styles.divider} />}
 
+              {/* 이미지 모달 뷰어 */}
               <Modal
                 visible={selectedImageIndex !== null}
                 transparent={true}
@@ -249,6 +283,7 @@ export default function BookmarkPanel() {
               >
                 <View style={styles.modalOverlay}>
                   <View style={styles.modalContainer}>
+                    {/* 닫기 버튼 */}
                     <TouchableOpacity
                       style={styles.closeButton}
                       onPress={() => {
@@ -261,9 +296,12 @@ export default function BookmarkPanel() {
                       </View>
                     </TouchableOpacity>
 
+                    {/* 이미지 컨테이너 */}
                     <View style={styles.imageContainer}>
+                      {/* 이미지가 2개 이상일 때만 네비게이션 버튼 표시 */}
                       {currentHeritageImages.length > 1 && (
                         <>
+                          {/* 이전 이미지 버튼 */}
                           <TouchableOpacity
                             style={[
                               styles.navigationButton,
@@ -283,6 +321,7 @@ export default function BookmarkPanel() {
                             />
                           </TouchableOpacity>
 
+                          {/* 다음 이미지 버튼 */}
                           <TouchableOpacity
                             style={[
                               styles.navigationButton,
@@ -310,6 +349,7 @@ export default function BookmarkPanel() {
                         </>
                       )}
 
+                      {/* 현재 이미지 */}
                       <Image
                         source={{
                           uri: currentHeritageImages[selectedImageIndex],
@@ -319,6 +359,7 @@ export default function BookmarkPanel() {
                       />
                     </View>
 
+                    {/* 이미지 카운터 (이미지가 2개 이상일 때만 표시) */}
                     {currentHeritageImages.length > 1 && (
                       <View style={styles.imageCounter}>
                         <Text style={styles.imageCounterText}>
@@ -341,6 +382,7 @@ export default function BookmarkPanel() {
   );
 }
 
+// 스타일 정의
 const styles = StyleSheet.create({
   container: {
     flex: 1,

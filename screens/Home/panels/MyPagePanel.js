@@ -3,48 +3,49 @@ import {
   View,
   Text,
   StyleSheet,
-  Pressable,
   Modal,
-  TextInput,
   TouchableOpacity,
-  Alert,
-  TouchableWithoutFeedback,
-  Keyboard,
   ScrollView,
   Image,
   Dimensions,
 } from "react-native";
-
-import Toast from "react-native-toast-message";
 import { useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+
+// 외부 라이브러리 import
+import Toast from "react-native-toast-message";
+
+// 내부 컨텍스트 및 유틸리티 import
 import { AuthContext } from "../../../contexts/AuthContext";
 import { useUserLocation } from "../../../contexts/UserLocationContext";
 import { useRoute } from "../../../contexts/RouteContext";
 import { useVia } from "../../../contexts/ViaContext";
 import { theme } from "../../../theme/colors";
-import { Ionicons } from "@expo/vector-icons";
-import { IP_ADDRESS } from "../../../config/apiKeys";
 import { useBookmark } from "../../../contexts/BookmarkContext";
 
+/**
+ * 마이페이지 패널 컴포넌트
+ * 주요 기능
+ * 1. 사용자 맞춤 추천 유적지 목록 표시
+ * 2. 추천 유적지에 대한 북마크, 장바구니 추가, 경로 설정 기능
+ * 3. 설정 화면 이동 기능
+ */
 export default function MyPagePanel() {
   const navigation = useNavigation();
-  const {
-    username,
-    isLoggedIn,
-    logout,
-    accessToken,
-    recommendations,
-    fetchRecommendations,
-  } = useContext(AuthContext);
+  const { username, isLoggedIn, recommendations, fetchRecommendations } =
+    useContext(AuthContext);
   const { userLocation } = useUserLocation();
   const { setDestination, setRoutePoints } = useRoute();
   const { addStopover } = useVia();
   const { bookmarks, addBookmark, removeBookmark } = useBookmark();
-  const [expandedIds, setExpandedIds] = useState([]);
-  const [expandedAddresses, setExpandedAddresses] = useState([]);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
-  const [currentHeritageImages, setCurrentHeritageImages] = useState([]);
 
+  // UI 확장 상태 관리
+  const [expandedIds, setExpandedIds] = useState([]); // 확장된 유적지 설명 ID 목록 배열
+  const [expandedAddresses, setExpandedAddresses] = useState([]); // 확장된 유적지 주소 ID 목록 배열
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null); // 선택된 이미지 인덱스
+  const [currentHeritageImages, setCurrentHeritageImages] = useState([]); // 현재 유적지 이미지 목록
+
+  // 로그인 상태에서 사용자 위치 기반 추천 유적지 가져오기
   useEffect(() => {
     if (isLoggedIn && userLocation) {
       if (recommendations.length === 0) {
@@ -53,18 +54,21 @@ export default function MyPagePanel() {
     }
   }, [isLoggedIn]);
 
+  // 유적지 설명 확장/축소 토글 메서드
   const toggleDescription = (id) => {
     setExpandedIds((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 유적지 주소 확장/축소 토글 메서드
   const toggleAddress = (id) => {
     setExpandedAddresses((prev) =>
       prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]
     );
   };
 
+  // 로그인하지 않은 경우 로그인 안내 화면 표시
   if (!isLoggedIn) {
     return (
       <View style={styles.container}>
@@ -88,6 +92,7 @@ export default function MyPagePanel() {
 
   return (
     <View style={styles.container}>
+      {/* 사용자 헤더 (사용자명 + 설정 버튼) */}
       <View style={styles.headerRow}>
         <Text style={styles.loginText}>
           <Text style={{ color: theme.main_blue, fontWeight: "bold" }}>
@@ -104,6 +109,7 @@ export default function MyPagePanel() {
         </TouchableOpacity>
       </View>
 
+      {/* 로그인된 경우 추천 유적지 목록 표시 */}
       {isLoggedIn && (
         <>
           <ScrollView
@@ -111,6 +117,7 @@ export default function MyPagePanel() {
             contentContainerStyle={styles.contentContainer}
             showsVerticalScrollIndicator={false}
           >
+            {/* 추천 유적지 헤더 */}
             <View style={[styles.header, { marginHorizontal: -20 }]}>
               <Text style={styles.nearbyText}>
                 <Text>
@@ -128,6 +135,8 @@ export default function MyPagePanel() {
                 )}
               </Text>
             </View>
+
+            {/* 추천 유적지 목록 렌더링 */}
             {recommendations.map((heritage, index) => {
               const isExpanded = expandedIds.includes(heritage.id);
               const maxLength = 100; // 최대 표시 글자 수
@@ -135,9 +144,13 @@ export default function MyPagePanel() {
                 heritage.description && heritage.description.length > maxLength;
 
               return (
-                <React.Fragment key={heritage.id}>
+                <React.Fragment key={`recommendation-${heritage.id}-${index}`}>
+                  {/* 개별 추천 유적지 아이템 */}
                   <View style={styles.itemContainer}>
+                    {/* 유적지 이름 */}
                     <Text style={styles.name}>{heritage.name}</Text>
+
+                    {/* 유적지 주소 (20자 이상일 경우 일부만 표시, 확장 가능) */}
                     <View style={styles.locationContainer}>
                       <Text style={styles.address}>
                         {heritage.detailAddress.length > 20 &&
@@ -163,6 +176,7 @@ export default function MyPagePanel() {
                       )}
                     </View>
 
+                    {/* 추천 이유 컨테이너 */}
                     <View style={styles.recommendReasonContainer}>
                       <Text style={styles.recommendReasonTitle}>추천 이유</Text>
                       <Text style={styles.recommendReason}>
@@ -170,6 +184,7 @@ export default function MyPagePanel() {
                       </Text>
                     </View>
 
+                    {/* 유적지 설명 (100자 이상일 경우 일부만 표시, 확장 가능) */}
                     <Text style={[styles.description]}>
                       {isExpanded
                         ? heritage.description
@@ -189,6 +204,7 @@ export default function MyPagePanel() {
                       )}
                     </Text>
 
+                    {/* 유적지 이미지 갤러리 */}
                     {heritage.imageUrls?.length > 0 && (
                       <ScrollView
                         horizontal
@@ -197,7 +213,7 @@ export default function MyPagePanel() {
                       >
                         {heritage.imageUrls.map((url, idx) => (
                           <TouchableOpacity
-                            key={idx}
+                            key={`heritage-image-${heritage.id}-${idx}`}
                             onPress={() => {
                               setSelectedImageIndex(idx);
                               setCurrentHeritageImages(heritage.imageUrls);
@@ -209,8 +225,11 @@ export default function MyPagePanel() {
                       </ScrollView>
                     )}
 
+                    {/* 액션 버튼들 */}
                     <View style={styles.buttonRow}>
+                      {/* 왼쪽 버튼들 (북마크, 장바구니 추가) */}
                       <View style={styles.leftButtons}>
+                        {/* 북마크 버튼 */}
                         <TouchableOpacity
                           style={styles.iconButton}
                           onPress={() => {
@@ -256,6 +275,7 @@ export default function MyPagePanel() {
                           />
                         </TouchableOpacity>
 
+                        {/* 장바구니 추가 버튼 */}
                         <TouchableOpacity
                           style={styles.iconButton}
                           onPress={async () => {
@@ -277,7 +297,9 @@ export default function MyPagePanel() {
                         </TouchableOpacity>
                       </View>
 
+                      {/* 오른쪽 버튼들 (출발지 설정, 목적지 설정, 챗봇) */}
                       <View style={styles.rightButtons}>
+                        {/* 출발지 설정 버튼 */}
                         <TouchableOpacity
                           style={styles.blueButton}
                           onPress={() => {
@@ -295,6 +317,7 @@ export default function MyPagePanel() {
                           <Text style={styles.buttonText}>출발</Text>
                         </TouchableOpacity>
 
+                        {/* 목적지 설정 버튼 */}
                         <TouchableOpacity
                           style={styles.blueButton}
                           onPress={() => {
@@ -309,6 +332,7 @@ export default function MyPagePanel() {
                           <Text style={styles.buttonText}>도착</Text>
                         </TouchableOpacity>
 
+                        {/* 챗봇 버튼 */}
                         <TouchableOpacity
                           style={styles.chatButton}
                           onPress={() => {
@@ -326,6 +350,8 @@ export default function MyPagePanel() {
                       </View>
                     </View>
                   </View>
+
+                  {/* 유적지 간 구분선 */}
                   {index < recommendations.length - 1 && (
                     <View style={styles.divider} />
                   )}
@@ -339,7 +365,7 @@ export default function MyPagePanel() {
         </>
       )}
 
-      {/* 이미지 모달 */}
+      {/* 이미지 모달 뷰어 */}
       <Modal
         visible={selectedImageIndex !== null}
         transparent={true}
@@ -350,6 +376,7 @@ export default function MyPagePanel() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
+            {/* 닫기 버튼 */}
             <TouchableOpacity
               style={styles.closeButton}
               onPress={() => {
@@ -362,9 +389,12 @@ export default function MyPagePanel() {
               </View>
             </TouchableOpacity>
 
+            {/* 이미지 컨테이너 */}
             <View style={styles.imageContainer}>
+              {/* 이미지가 2개 이상일 때만 네비게이션 버튼 표시 */}
               {currentHeritageImages.length > 1 && (
                 <>
+                  {/* 이전 이미지 버튼 */}
                   <TouchableOpacity
                     style={[
                       styles.navigationButton,
@@ -380,6 +410,7 @@ export default function MyPagePanel() {
                     <Ionicons name="chevron-back" size={30} color="white" />
                   </TouchableOpacity>
 
+                  {/* 다음 이미지 버튼 */}
                   <TouchableOpacity
                     style={[
                       styles.navigationButton,
@@ -400,6 +431,7 @@ export default function MyPagePanel() {
                 </>
               )}
 
+              {/* 현재 이미지 */}
               <Image
                 source={{
                   uri: currentHeritageImages[selectedImageIndex],
@@ -409,6 +441,7 @@ export default function MyPagePanel() {
               />
             </View>
 
+            {/* 이미지 카운터 (이미지가 2개 이상일 때만 표시) */}
             {currentHeritageImages.length > 1 && (
               <View style={styles.imageCounter}>
                 <Text style={styles.imageCounterText}>
@@ -423,6 +456,7 @@ export default function MyPagePanel() {
   );
 }
 
+// 스타일 정의
 const styles = StyleSheet.create({
   container: {
     flex: 1,

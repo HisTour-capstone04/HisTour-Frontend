@@ -11,20 +11,37 @@ import {
   Keyboard,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
+// 외부 라이브러리 import
 import Toast from "react-native-toast-message";
+
+// 내부 컴포넌트 및 유틸리티 import
 import { AuthContext } from "../contexts/AuthContext";
 import { theme } from "../theme/colors";
-import { useNavigation } from "@react-navigation/native";
+
+// 서버 주소 상수
 import { IP_ADDRESS } from "../config/apiKeys";
+
+/**
+ * 인증 화면 컴포넌트
+ *
+ * 주요 기능 :
+ * 1. 로그인 기능 (이메일/비밀번호)
+ * 2. 회원가입 기능 (이름/이메일/비밀번호/비밀번호 확인)
+ * 3. 로그인/회원가입 시 입력 유효성 검사
+ * 4. 키보드 처리 및 UI 최적화
+ *
+ **/
 
 export default function AuthScreen() {
   const { login } = useContext(AuthContext);
   const navigation = useNavigation();
 
+  // 화면 모드 state (로그인/회원가입)
   const [isLoginMode, setIsLoginMode] = useState(true);
 
-  // 사용자 입력 관리
+  // 사용자 입력 값 관리
   const [signupName, setSignupName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +55,7 @@ export default function AuthScreen() {
     console.log("이메일:", email);
     console.log("비밀번호:", password);
 
-    // 이메일 or 비밀번호 공란
+    // 이메일 or 비밀번호가 공란일 경우
     if (!email || !password) {
       Toast.show({
         type: "error",
@@ -48,6 +65,7 @@ export default function AuthScreen() {
       return;
     }
 
+    // 서버에 로그인 요청
     try {
       const response = await fetch(
         "http://" + IP_ADDRESS + ":8080/api/members/login",
@@ -102,7 +120,7 @@ export default function AuthScreen() {
       return;
     }
 
-    // 이메일 주소가 유효하지 않을 경우
+    // 이메일 유효성 검사
     if (!isValidEmail(email)) {
       Toast.show({
         type: "error",
@@ -122,6 +140,7 @@ export default function AuthScreen() {
       return;
     }
 
+    // 서버에 회원가입 요청
     try {
       const response = await fetch(
         "http://" + IP_ADDRESS + ":8080/api/members/signup",
@@ -169,14 +188,14 @@ export default function AuthScreen() {
   };
 
   return (
-    // 입력 도중 다른 곳 터치 시 키보드 내림
+    // 키보드 외부 터치 시 키보드 숨김
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      {/* 키보드가 올라와도 안 가려지도록 처리 (for iOS) */}
+      {/* 키보드가 올라와도 컨텐츠가 가려지지 않도록 처리 (for iOS) */}
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        {/* 상단 X 버튼 */}
+        {/* 상단 닫기(x) 버튼 */}
         <TouchableOpacity
           style={styles.closeButton}
           onPress={() => navigation.goBack()}
@@ -184,10 +203,10 @@ export default function AuthScreen() {
           <Ionicons name="close" size={28} color="#666" />
         </TouchableOpacity>
 
-        {/* 타이틀 */}
+        {/* 화면 타이틀 */}
         <Text style={styles.title}>{isLoginMode ? "로그인" : "회원가입"}</Text>
 
-        {/* 이름 입력 칸 (회원가입 창) */}
+        {/* 이름 입력 필드 (회원가입 창) */}
         {!isLoginMode && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>이름</Text>
@@ -200,7 +219,7 @@ export default function AuthScreen() {
           </View>
         )}
 
-        {/* 이메일 입력 칸 */}
+        {/* 이메일 입력 필드 */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>이메일</Text>
           <TextInput
@@ -213,6 +232,7 @@ export default function AuthScreen() {
           />
         </View>
 
+        {/* 비밀번호 입력 필드 */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>비밀번호</Text>
           <TextInput
@@ -224,6 +244,7 @@ export default function AuthScreen() {
           />
         </View>
 
+        {/* 비밀번호 확인 필드 (회원가입 창) */}
         {!isLoginMode && (
           <View style={styles.inputGroup}>
             <Text style={styles.label}>비밀번호 확인</Text>
@@ -237,6 +258,7 @@ export default function AuthScreen() {
           </View>
         )}
 
+        {/* 로그인/회원가입 버튼 */}
         <TouchableOpacity
           style={styles.button}
           onPress={isLoginMode ? handleLogin : handleSignup}
@@ -246,6 +268,7 @@ export default function AuthScreen() {
           </Text>
         </TouchableOpacity>
 
+        {/* 로그인/회원가입 모드 전환 버튼 */}
         <View style={styles.linkWrapper}>
           <Text style={styles.linkText}>
             {isLoginMode ? "아직 회원이 아니신가요? " : "이미 회원이신가요? "}
@@ -262,6 +285,7 @@ export default function AuthScreen() {
   );
 }
 
+// 스타일 정의
 const styles = StyleSheet.create({
   container: {
     flex: 1,

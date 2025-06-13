@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 
-// 디바운싱 용 커스텀 훅
+/**
+ * 디바운싱 커스텀 훅
+ * 입력값의 연속적인 변경을 일정 시간 지연시켜 최종값만 반환
+ *
+ * 사용 예시:
+ * const debouncedItem = useDebouncedValue(item, 500);
+ * // item이 500ms 동안 변경되지 않으면 debouncedItem에 반영
+ */
 export function useDebouncedValue(value, delay = 300) {
   const [debounced, setDebounced] = useState(value);
 

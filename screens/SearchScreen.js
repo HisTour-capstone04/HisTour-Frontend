@@ -11,38 +11,48 @@ import {
   Keyboard,
   Alert,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 
-import { theme } from "../theme/colors";
-
-import { useUserLocation } from "../contexts/UserLocationContext";
-import { useDebouncedValue } from "../hooks/useDebouncedValue";
+// 외부 라이브러리 import
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 
-import { useRoute } from "../contexts/RouteContext";
+// 내부 컴포넌트 및 유틸리티 import
+import { theme } from "../theme/colors";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
-import { TMAP_APP_KEY } from "../config/apiKeys";
+// 서버 주소 상수
 import { IP_ADDRESS } from "../config/apiKeys";
-const MAX_RECENT_KEYWORDS = 15; // 저장 가능한 최근 검색어 최대 개수
 
+// 저장 가능한 최근 검색어 최대 개수 상수
+const MAX_RECENT_KEYWORDS = 15;
+
+/**
+ * 검색 화면 컴포넌트
+ *
+ * 주요 기능 :
+ * 1. 유적지 검색 기능 (디바운싱을 통한 실시간 검색)
+ * - 검색 버튼을 누르지 않아도 입력값이 500ms 동안 변경되지 않으면(디바운싱) 자동으로 검색 실행
+ *
+ * 2. 최근 검색어 저장 및 관리
+ * - 최근 검색어 저장 기준: 키보드의 검색 버튼 클릭 or 검색 결과 클릭
+ *
+ */
 export default function SearchScreen() {
-  const { userLocation } = useUserLocation();
   const navigation = useNavigation();
-  const { setDestination } = useRoute();
 
   const [input, setInput] = useState("");
-  const debouncedInput = useDebouncedValue(input, 500); // 500ms 후 자동 반영
+  const debouncedInput = useDebouncedValue(input, 500); // 500ms 후 자동 반영 (디바운싱)
 
-  const [recentKeywords, setRecentKeywords] = useState([]);
-  const [results, setResults] = useState([]);
-  const [viewMode, setViewMode] = useState("recent"); // recent or result
+  const [recentKeywords, setRecentKeywords] = useState([]); // 최근 검색어 목록 배열
+  const [results, setResults] = useState([]); // 검색 결과 목록 배열
+  const [viewMode, setViewMode] = useState("recent"); // recent(최근 검색어) or result(검색 결과) 모드 관리
   const [isLoading, setIsLoading] = useState(false); // 로딩 상태
 
   const requestId = useRef(0); // fetch 요청 번호
 
-  // 자동 검색
+  // 디바운싱된 입력값에 따라 자동 검색 (검색 버튼을 누르지 않아도 자동으로 검색 실행)
   useEffect(() => {
     if (!debouncedInput.trim()) {
       setViewMode("recent"); // 검색어가 비었으면 최근 검색어 보기로 전환
@@ -53,39 +63,36 @@ export default function SearchScreen() {
     // viewMode를 result로 바꾸고 검색 실행
     setViewMode("result");
 
+    // 검색 실행 메서드
     const doSearch = async () => {
-      // 이전 결과 비우기
-      setResults([]);
+      setResults([]); // 기존 검색 결과 비우기
+      const searchResults = await fetchSearchResults(debouncedInput); // 검색 결과 요청
 
-      const searchResults = await fetchSearchResults(debouncedInput);
-
-      // 최신 요청만 반영
+      // 최신 요청만 반영 (이전 요청의 결과는 무시)
       if (searchResults !== null) {
         setResults(searchResults);
       }
-
-      console.log(
-        debouncedInput +
-          "(으)로 검색한 결과: " +
-          JSON.stringify(searchResults, ["name"])
-      );
     };
 
-    doSearch();
+    doSearch(); // 검색 실행
   }, [debouncedInput]);
 
+  // 컴포넌트 마운트 시 최근 검색어 불러오기
   useEffect(() => {
     loadKeywords();
   }, []);
 
+  // AsyncStorage에서 최근 검색어 불러오기 메서드
   const loadKeywords = async () => {
     const json = await AsyncStorage.getItem("recentKeywords");
     if (json) setRecentKeywords(JSON.parse(json));
   };
 
+  // 검색어를 최근 검색어로 저장하는 메서드 (저장 기준: 키보드의 검색 버튼 클릭 or 검색 결과 클릭)
   const saveKeyword = async (keyword) => {
     if (!keyword.trim()) return; // 공백만 있는 경우 저장하지 않음
 
+    // 최근 검색어 목록 업데이트 (중복 제거 후 최대 개수 제한)
     const updated = [
       keyword,
       ...recentKeywords.filter((k) => k !== keyword),
@@ -94,6 +101,7 @@ export default function SearchScreen() {
     setRecentKeywords(updated);
   };
 
+  // 모든 최근 검색어 삭제 메서드
   const clearAllKeywords = async () => {
     await AsyncStorage.removeItem("recentKeywords");
     setRecentKeywords([]);
@@ -104,18 +112,15 @@ export default function SearchScreen() {
     });
   };
 
-  // 유적지 검색
+  //  유적지 검색 메서드
   const fetchSearchResults = async (keyword) => {
-    // fetch 요청 번호 설정
-    requestId.current += 1;
+    requestId.current += 1; // fetch 요청 번호 설정
     const myRequestId = requestId.current; // 해당 건의 요청 번호
 
-    // 로딩 시작
-    setIsLoading(true);
+    setIsLoading(true); // 로딩 시작
 
-    // fetch 과정
+    // 서버에 유적지 검색 요청
     try {
-      console.log(keyword + " 검색 시작");
       const response = await fetch(
         "http://" +
           IP_ADDRESS +
@@ -141,7 +146,7 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* 상단 입력창 */}
+      {/* 상단 검색 입력창 */}
       <View style={styles.topBar}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="black" />
@@ -153,12 +158,13 @@ export default function SearchScreen() {
             placeholder={"검색어를 입력하세요"}
             returnKeyType="search"
             onSubmitEditing={() => {
-              saveKeyword(input);
+              saveKeyword(input); // 키보드의 검색 버튼 클릭 시 최근 검색어로 저장
               Keyboard.dismiss();
             }}
             style={styles.input}
             autoFocus
           />
+          {/* 입력값이 있을 때만 표시되는 삭제 버튼 */}
           {input.length > 0 && (
             <TouchableOpacity
               onPress={() => setInput("")}
@@ -170,7 +176,7 @@ export default function SearchScreen() {
         </View>
       </View>
 
-      {/* 최근 검색어 */}
+      {/* 최근 검색어 목록 */}
       {viewMode === "recent" && (
         <FlatList
           data={recentKeywords}
@@ -179,7 +185,7 @@ export default function SearchScreen() {
             <TouchableOpacity
               onPress={() => {
                 setInput(item); // 검색어로 설정 (자동 검색됨)
-                saveKeyword(item); // 최근 검색어로 다시 저장
+                saveKeyword(item); // 최근 검색어 클릭 시 최근 검색어로 다시 저장
               }}
             >
               <Text style={styles.keyword}>{item}</Text>
@@ -216,7 +222,7 @@ export default function SearchScreen() {
         />
       )}
 
-      {/* 검색 결과 */}
+      {/* 검색 결과 목록 */}
       {viewMode === "result" && (
         <FlatList
           data={results}
@@ -225,11 +231,10 @@ export default function SearchScreen() {
             <TouchableOpacity
               onPress={async () => {
                 try {
-                  saveKeyword(item.name); // 최근 검색어
+                  saveKeyword(item.name); // 검색 결과 클릭 시 최근 검색어로 저장
                   navigation.goBack();
                   navigation.navigate("Home", { heritage: item });
                 } catch (e) {
-                  console.error("경로 계산 중 오류:", e);
                   navigation.navigate("Home");
                 }
               }}
@@ -259,6 +264,7 @@ export default function SearchScreen() {
   );
 }
 
+// 스타일 정의
 const styles = StyleSheet.create({
   container: {
     flex: 1,

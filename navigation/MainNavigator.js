@@ -17,29 +17,40 @@ export default function MainNavigator() {
       <HeritageNotificationProvider>
         <Stack.Navigator
           initialRouteName="Home"
-          screenOptions={{ headerShown: false }}
+          screenOptions={{
+            headerShown: false,
+            id: "main-stack",
+          }}
         >
-          <Stack.Screen name="Home" component={HomeScreen} />
-          <Stack.Screen name="Config" component={ConfigScreen} />
+          <Stack.Screen name="Home" component={HomeScreen} id="home-screen" />
+          <Stack.Screen
+            name="Config"
+            component={ConfigScreen}
+            id="config-screen"
+          />
           <Stack.Screen
             name="Auth"
             component={AuthScreen}
             options={{ animation: "slide_from_bottom" }}
+            id="auth-screen"
           />
           <Stack.Screen
             name="Search"
             component={SearchScreen}
             options={{ animation: "none" }}
+            id="search-screen"
           />
           <Stack.Screen
             name="Chatbot"
             component={ChatbotScreen}
             options={{ animation: "slide_from_right" }}
+            id="chatbot-screen"
           />
           <Stack.Screen
             name="ChatbotConfig"
             component={ChatbotConfigScreen}
             options={{ animation: "slide_from_right" }}
+            id="chatbot-config-screen"
           />
         </Stack.Navigator>
       </HeritageNotificationProvider>
