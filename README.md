@@ -25,8 +25,10 @@
 
 ## 기능 소개
 ### 데모 영상
+<div align="center">
+    
 [![image](https://github.com/user-attachments/assets/a3defa63-0724-4a01-9734-cb86a4494c1d)](https://youtu.be/CoeC7rlyzjk?si=LPyyvEb-bvYpmj6N)
-앱의 주요 기능을 설명 및 시연하는 데모 영상입니다. 클릭 시 새로운 창에서 영상이 재생됩니다.
+앱의 주요 기능을 설명 및 시연하는 데모 영상입니다. 이미지 클릭 시 영상 재생 페이지로 이동합니다. </div>
 <br>
 <br>
 
