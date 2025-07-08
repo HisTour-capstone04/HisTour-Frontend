@@ -30,7 +30,6 @@
 [![image](https://github.com/user-attachments/assets/a3defa63-0724-4a01-9734-cb86a4494c1d)](https://youtu.be/CoeC7rlyzjk?si=LPyyvEb-bvYpmj6N)
 앱의 주요 기능을 설명 및 시연하는 데모 영상입니다. 이미지 클릭 시 영상 재생 페이지로 이동합니다. </div>
 <br>
-<br>
 
 ### 🔐 로그인/회원가입
 - 이메일과 비밀번호를 입력하여 간편하게 로그인할 수 있습니다.
